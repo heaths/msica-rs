@@ -1,0 +1,5 @@
+# Copyright 2022 Heath Stewart.
+# Licensed under the MIT License. See LICENSE.txt in the project root for license information.
+
+[toolchain]
+targets = ["x86_64-pc-windows-msvc"]
