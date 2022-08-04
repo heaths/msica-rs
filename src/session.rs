@@ -12,18 +12,16 @@ use std::ops::Deref;
 ///
 /// ```no_run
 /// use msica::*;
+/// const ERROR_SUCCESS: u32 = 0;
 ///
 /// #[no_mangle]
 /// pub extern "C" fn MyCustomAction(h: MSIHANDLE) -> u32 {
-///     const ERROR_SUCCESS: u32 = 0;
-///
 ///     let session = Session::from(h);
 ///     let record = Record::with_fields(
-///         Some("this is [1] [2]".to_owned()),
-///         vec![Field::Integer(1), Field::String("example".to_owned())],
+///         Some("this is [1] [2]"),
+///         vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
 ///     );
 ///     session.message(MessageType::User, &record);
-///
 ///     ERROR_SUCCESS
 /// }
 /// ```
@@ -33,6 +31,55 @@ pub struct Session {
 }
 
 impl Session {
+    /// Runs the specified immediate custom action, or schedules a deferred custom action.
+    /// If `None` the default action is run e.g., `INSTALL`.
+    ///
+    /// To schedule a deferred custom action with its `CustomActionData`,
+    /// call `do_deferred_action`.
+    pub fn do_action(&self, action: Option<&str>) {
+        unsafe {
+            let action = match action {
+                Some(s) => CString::new(s).unwrap(),
+                None => CString::default(),
+            };
+            ffi::MsiDoAction(self.h, action.as_ptr());
+        }
+    }
+
+    /// Sets custom action data and schedules a deferred custom action.
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use msica::*;
+    /// const ERROR_SUCCESS: u32 = 0;
+    ///
+    /// #[no_mangle]
+    /// pub extern "C" fn MyCustomAction(h: MSIHANDLE) -> u32 {
+    ///     let session = Session::from(h);
+    ///     for i in 0..5 {
+    ///         session.do_deferred_action("MyDeferredCustomAction", &i.to_string())
+    ///     }
+    ///     ERROR_SUCCESS
+    /// }
+    ///
+    /// #[no_mangle]
+    /// pub extern "C" fn MyDeferredCustomAction(h: MSIHANDLE) -> u32 {
+    ///     let session = Session::from(h);
+    ///     let data = session.property("CustomActionData");
+    ///     let record = Record::with_fields(
+    ///         Some("Running deferred custom action [1]"),
+    ///         vec![Field::StringData(data)],
+    ///     );
+    ///     session.message(MessageType::Info, &record);
+    ///     ERROR_SUCCESS
+    /// }
+    /// ```
+    pub fn do_deferred_action(&self, action: &str, custom_action_data: &str) {
+        self.set_property(action, Some(custom_action_data));
+        self.do_action(Some(action));
+    }
+
     /// Processes a [`Record`] within the [`Session`].
     pub fn message(&self, kind: MessageType, record: &Record) -> i32 {
         unsafe { ffi::MsiProcessMessage(self.h, kind as u32, record.into()) }
@@ -69,6 +116,23 @@ impl Session {
             }
 
             String::default()
+        }
+    }
+
+    /// Sets the value of the named property. Pass `None` to clear the field.
+    pub fn set_property(&self, name: &str, value: Option<&str>) {
+        unsafe {
+            let name = CString::new(name).unwrap();
+            let value = match value {
+                Some(s) => CString::new(s).unwrap(),
+                None => CString::default(),
+            };
+
+            ffi::MsiSetProperty(
+                self.h,
+                name.as_ptr() as ffi::LPCSTR,
+                value.as_ptr() as ffi::LPCSTR,
+            );
         }
     }
 }

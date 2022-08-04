@@ -8,10 +8,10 @@ use std::ffi::CString;
 /// A field in a [`Record`].
 pub enum Field {
     /// A string field in a [`Record`].
-    String(String),
+    StringData(String),
 
     /// An integer field in a [`Record`].
-    Integer(i32),
+    IntegerData(i32),
 
     /// A null field in a [`Record`].
     Null,
@@ -19,7 +19,7 @@ pub enum Field {
 
 impl From<&str> for Field {
     fn from(s: &str) -> Self {
-        Field::String(s.to_owned())
+        Field::StringData(s.to_owned())
     }
 }
 
@@ -50,23 +50,23 @@ impl Record {
     /// use msica::{Field, Record};
     ///
     /// let record = Record::with_fields(
-    ///     Some("this is [1] [2]".to_owned()),
-    ///     vec![Field::Integer(1), Field::String("example".to_owned())]);
+    ///     Some("this is [1] [2]"),
+    ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned())]);
     /// ```
-    pub fn with_fields(text: Option<String>, fields: Vec<Field>) -> Self {
+    pub fn with_fields(text: Option<&str>, fields: Vec<Field>) -> Self {
         unsafe {
             let h = ffi::MsiCreateRecord(fields.len() as u32);
-            let mut record = Record { h: h.to_owned() };
+            let record = Record { h: h.to_owned() };
 
             if let Some(text) = text {
-                record.set_string(0, &text);
+                record.set_string_data(0, Some(text));
             }
 
             for (idx, field) in fields.iter().enumerate() {
                 let idx: u32 = idx.try_into().unwrap();
                 match field {
-                    Field::String(s) => record.set_string(idx + 1, s),
-                    Field::Integer(i) => record.set_integer(idx + 1, *i),
+                    Field::StringData(s) => record.set_string_data(idx + 1, Some(s)),
+                    Field::IntegerData(i) => record.set_integer_data(idx + 1, *i),
                     Field::Null => {}
                 }
             }
@@ -94,8 +94,8 @@ impl Record {
     /// use msica::{Field, Record};
     ///
     /// let record = Record::with_fields(
-    ///     Some("this is [1] [2]{ without [3]}".to_owned()),
-    ///     vec![Field::Integer(1), Field::String("example".to_owned()), Field::Null],
+    ///     Some("this is [1] [2]{ without [3]}"),
+    ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned()), Field::Null],
     /// );
     /// assert_eq!(record.format_text(), "this is 1 example");
     /// ```
@@ -139,12 +139,12 @@ impl Record {
     /// use msica::{Field, Record};
     ///
     /// let record = Record::with_fields(
-    ///     Some("this is [1] [2]".to_owned()),
-    ///     vec![Field::Integer(1), Field::String("example".to_owned())],
+    ///     Some("this is [1] [2]"),
+    ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
     /// );
-    /// assert_eq!(record.string(2), "example");
+    /// assert_eq!(record.string_data(2), "example");
     /// ```
-    pub fn string(&self, field: u32) -> String {
+    pub fn string_data(&self, field: u32) -> String {
         unsafe {
             let mut value_len = 0u32;
             let value = CString::default();
@@ -174,7 +174,7 @@ impl Record {
         }
     }
 
-    /// Sets a string field in a [`Record`].
+    /// Sets a string field in a [`Record`]. Pass `None` to clear the field.
     ///
     /// Field indices are 1-based, though you can set a template string in field 0.
     ///
@@ -184,14 +184,17 @@ impl Record {
     /// use msica::{Field, Record};
     ///
     /// let mut record = Record::new(42);
-    /// record.set_string(1, "example");
-    /// assert_eq!(record.string(1), "example");
+    /// record.set_string_data(1, Some("example"));
+    /// assert_eq!(record.string_data(1), "example");
     /// ```
-    pub fn set_string(&mut self, field: u32, value: &str) {
+    pub fn set_string_data(&self, field: u32, value: Option<&str>) {
         unsafe {
             // TODO: Return result containing NulError if returned.
-            let s = CString::new(value).unwrap();
-            ffi::MsiRecordSetString(self.into(), field, s.as_ptr());
+            let value = match value {
+                Some(s) => CString::new(s).unwrap(),
+                None => CString::default(),
+            };
+            ffi::MsiRecordSetString(self.into(), field, value.as_ptr());
         }
     }
 
@@ -205,12 +208,12 @@ impl Record {
     /// use msica::{Field, Record};
     ///
     /// let record = Record::with_fields(
-    ///     Some("this is [1] [2]".to_owned()),
-    ///     vec![Field::Integer(1), Field::String("example".to_owned())],
+    ///     Some("this is [1] [2]"),
+    ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
     /// );
-    /// assert_eq!(record.integer(1), 1);
+    /// assert_eq!(record.integer_data(1), 1);
     /// ```
-    pub fn integer(&self, field: u32) -> i32 {
+    pub fn integer_data(&self, field: u32) -> i32 {
         unsafe { ffi::MsiRecordGetInteger(self.into(), field) }
     }
 
@@ -224,10 +227,10 @@ impl Record {
     /// use msica::{Field, Record};
     ///
     /// let mut record = Record::new(1);
-    /// record.set_integer(1, 42);
-    /// assert_eq!(record.integer(1), 42);
+    /// record.set_integer_data(1, 42);
+    /// assert_eq!(record.integer_data(1), 42);
     /// ```
-    pub fn set_integer(&mut self, field: u32, value: i32) {
+    pub fn set_integer_data(&self, field: u32, value: i32) {
         unsafe {
             ffi::MsiRecordSetInteger(self.into(), field, value);
         }
@@ -257,12 +260,6 @@ impl Into<MSIHANDLE> for Record {
 }
 
 impl Into<MSIHANDLE> for &Record {
-    fn into(self) -> MSIHANDLE {
-        MSIHANDLE(self.h.0)
-    }
-}
-
-impl Into<MSIHANDLE> for &mut Record {
     fn into(self) -> MSIHANDLE {
         MSIHANDLE(self.h.0)
     }
@@ -301,7 +298,7 @@ mod tests {
     fn field_count() {
         let record = Record::with_fields(
             None,
-            vec![Field::Integer(1), Field::String("two".to_owned())],
+            vec![Field::IntegerData(1), Field::StringData("two".to_owned())],
         );
         assert_eq!(2, record.field_count());
     }
@@ -309,8 +306,8 @@ mod tests {
     #[test]
     fn format_text() {
         let record = Record::with_fields(
-            Some("test [1] of [2]".to_owned()),
-            vec![Field::Integer(2), Field::String("two".to_owned())],
+            Some("test [1] of [2]"),
+            vec![Field::IntegerData(2), Field::StringData("two".to_owned())],
         );
         assert_eq!("test 2 of two", record.format_text());
     }

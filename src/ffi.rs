@@ -22,6 +22,9 @@ extern "C" {
 
     pub fn MsiCreateRecord(cParams: u32) -> MSIHANDLE;
 
+    #[link_name = "MsiDoActionA"]
+    pub fn MsiDoAction(hInstall: MSIHANDLE, szAction: LPCSTR) -> u32;
+
     #[link_name = "MsiGetPropertyA"]
     pub fn MsiGetProperty(
         hInstall: MSIHANDLE,
@@ -58,6 +61,9 @@ extern "C" {
 
     #[link_name = "MsiRecordSetStringA"]
     pub fn MsiRecordSetString(hRecord: MSIHANDLE, iField: u32, szValue: LPCSTR) -> u32;
+
+    #[link_name = "MsiSetPropertyA"]
+    pub fn MsiSetProperty(hInstall: MSIHANDLE, szName: LPCSTR, szValue: LPCSTR) -> u32;
 }
 
 #[derive(Copy, Clone)]

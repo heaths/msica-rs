@@ -5,3 +5,8 @@
 name = "msica"
 version = "0.1.0"
 edition = "2021"
+
+[[example]]
+name = "deferred"
+crate-type = ["cdylib"]
+path = "examples/deferred/lib.rs"
