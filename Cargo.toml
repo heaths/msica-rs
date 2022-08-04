@@ -5,6 +5,10 @@
 name = "msica"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Rust for Windows Installer Custom Actions"
+homepage = "https://github.com/heaths/msica-rs/"
+repository = "https://github.com/heaths/msica-rs/"
 
 [[example]]
 name = "deferred"
