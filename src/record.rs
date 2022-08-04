@@ -4,6 +4,7 @@
 use super::ffi;
 use super::{MSIHANDLE, PMSIHANDLE};
 use std::ffi::CString;
+use std::ops::Deref;
 
 /// A field in a [`Record`].
 pub enum Field {
@@ -52,6 +53,7 @@ impl Record {
     /// let record = Record::with_fields(
     ///     Some("this is [1] [2]"),
     ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned())]);
+    /// assert_eq!(record.field_count(), 2);
     /// ```
     pub fn with_fields(text: Option<&str>, fields: Vec<Field>) -> Self {
         unsafe {
@@ -62,11 +64,11 @@ impl Record {
                 record.set_string_data(0, Some(text));
             }
 
-            for (idx, field) in fields.iter().enumerate() {
-                let idx: u32 = idx.try_into().unwrap();
+            for (i, field) in fields.iter().enumerate() {
+                let i: u32 = i.try_into().unwrap();
                 match field {
-                    Field::StringData(s) => record.set_string_data(idx + 1, Some(s)),
-                    Field::IntegerData(i) => record.set_integer_data(idx + 1, *i),
+                    Field::StringData(data) => record.set_string_data(i + 1, Some(data)),
+                    Field::IntegerData(data) => record.set_integer_data(i + 1, *data),
                     Field::Null => {}
                 }
             }
@@ -77,7 +79,7 @@ impl Record {
 
     /// Gets the count of fields in the record.
     pub fn field_count(&self) -> u32 {
-        unsafe { ffi::MsiRecordGetFieldCount(self.into()) }
+        unsafe { ffi::MsiRecordGetFieldCount(*self.h) }
     }
 
     /// Formats the template string in field 0 with the remaining fields.
@@ -106,7 +108,7 @@ impl Record {
 
             if ffi::MsiFormatRecord(
                 MSIHANDLE::null(),
-                self.into(),
+                *self.h,
                 value.as_ptr() as ffi::LPSTR,
                 &mut value_len as *mut u32,
             ) == ffi::ERROR_MORE_DATA
@@ -116,7 +118,7 @@ impl Record {
 
                 ffi::MsiFormatRecord(
                     MSIHANDLE::null(),
-                    self.into(),
+                    *self.h,
                     value.as_mut_ptr() as ffi::LPSTR,
                     &mut value_len as *mut u32,
                 );
@@ -150,7 +152,7 @@ impl Record {
             let value = CString::default();
 
             if ffi::MsiRecordGetString(
-                self.into(),
+                *self.h,
                 field,
                 value.as_ptr() as ffi::LPSTR,
                 &mut value_len as *mut u32,
@@ -160,7 +162,7 @@ impl Record {
                 let mut value: Vec<u8> = vec![0; value_len as usize];
 
                 ffi::MsiRecordGetString(
-                    self.into(),
+                    *self.h,
                     field,
                     value.as_mut_ptr() as ffi::LPSTR,
                     &mut value_len as *mut u32,
@@ -194,7 +196,7 @@ impl Record {
                 Some(s) => CString::new(s).unwrap(),
                 None => CString::default(),
             };
-            ffi::MsiRecordSetString(self.into(), field, value.as_ptr());
+            ffi::MsiRecordSetString(*self.h, field, value.as_ptr());
         }
     }
 
@@ -214,7 +216,7 @@ impl Record {
     /// assert_eq!(record.integer_data(1), 1);
     /// ```
     pub fn integer_data(&self, field: u32) -> i32 {
-        unsafe { ffi::MsiRecordGetInteger(self.into(), field) }
+        unsafe { ffi::MsiRecordGetInteger(*self.h, field) }
     }
 
     /// Sets an integer field in a [`Record`].
@@ -232,7 +234,7 @@ impl Record {
     /// ```
     pub fn set_integer_data(&self, field: u32, value: i32) {
         unsafe {
-            ffi::MsiRecordSetInteger(self.into(), field, value);
+            ffi::MsiRecordSetInteger(*self.h, field, value);
         }
     }
 
@@ -249,19 +251,15 @@ impl Record {
     /// assert_eq!(record.is_null(1), true);
     /// ```
     pub fn is_null(&self, field: u32) -> bool {
-        unsafe { ffi::MsiRecordIsNull(self.into(), field).as_bool() }
+        unsafe { ffi::MsiRecordIsNull(*self.h, field).as_bool() }
     }
 }
 
-impl Into<MSIHANDLE> for Record {
-    fn into(self) -> MSIHANDLE {
-        MSIHANDLE(self.h.0)
-    }
-}
+impl Deref for Record {
+    type Target = MSIHANDLE;
 
-impl Into<MSIHANDLE> for &Record {
-    fn into(self) -> MSIHANDLE {
-        MSIHANDLE(self.h.0)
+    fn deref(&self) -> &Self::Target {
+        &*self.h
     }
 }
 
@@ -271,7 +269,7 @@ impl From<&str> for Record {
             let h = ffi::MsiCreateRecord(0u32);
             // TODO: Return result containing NulError if returned.
             let s = CString::new(s).unwrap();
-            ffi::MsiRecordSetString(h.into(), 0, s.as_ptr());
+            ffi::MsiRecordSetString(h, 0, s.as_ptr());
 
             Record { h: h.to_owned() }
         }
@@ -282,8 +280,9 @@ impl From<String> for Record {
     fn from(s: String) -> Self {
         unsafe {
             let h = ffi::MsiCreateRecord(0u32);
+            // TODO: Return result containing NulError if returned.
             let s = CString::new(s).unwrap();
-            ffi::MsiRecordSetString(h.into(), 0, s.as_ptr());
+            ffi::MsiRecordSetString(h, 0, s.as_ptr());
 
             Record { h: h.to_owned() }
         }
@@ -295,21 +294,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn field_count() {
-        let record = Record::with_fields(
-            None,
-            vec![Field::IntegerData(1), Field::StringData("two".to_owned())],
-        );
-        assert_eq!(2, record.field_count());
-    }
+    fn set_string_data_null() {
+        let record = Record::with_fields(None, vec![Field::StringData("test".to_owned())]);
+        assert_eq!(record.string_data(1), "test");
 
-    #[test]
-    fn format_text() {
-        let record = Record::with_fields(
-            Some("test [1] of [2]"),
-            vec![Field::IntegerData(2), Field::StringData("two".to_owned())],
-        );
-        assert_eq!("test 2 of two", record.format_text());
+        record.set_string_data(1, None);
+        assert!(record.is_null(1));
     }
 
     #[test]
