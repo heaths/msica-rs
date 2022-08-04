@@ -71,11 +71,12 @@ impl Session {
     ///         Some("Running deferred custom action [1]"),
     ///         vec![Field::StringData(data)],
     ///     );
+    ///     session.message(MessageType::Info, &record);
     ///     ERROR_SUCCESS
     /// }
     /// ```
-    pub fn do_deferred_action(&self, action: &str, data: &str) {
-        self.set_property(action, Some(data));
+    pub fn do_deferred_action(&self, action: &str, custom_action_data: &str) {
+        self.set_property(action, Some(custom_action_data));
         self.do_action(Some(action));
     }
 
