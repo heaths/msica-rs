@@ -294,15 +294,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn set_string_data_null() {
-        let record = Record::with_fields(None, vec![Field::StringData("test".to_owned())]);
-        assert_eq!(record.string_data(1), "test");
-
-        record.set_string_data(1, None);
-        assert!(record.is_null(1));
-    }
-
-    #[test]
     fn from_str() {
         let record = Record::from("test");
         assert_eq!(record.string_data(0), "test");
@@ -312,5 +303,14 @@ mod tests {
     fn from_string() {
         let record = Record::from("test".to_owned());
         assert_eq!(record.string_data(0), "test");
+    }
+
+    #[test]
+    fn set_string_data_null() {
+        let record = Record::with_fields(None, vec![Field::StringData("test".to_owned())]);
+        assert_eq!(record.string_data(1), "test");
+
+        record.set_string_data(1, None);
+        assert!(record.is_null(1));
     }
 }
