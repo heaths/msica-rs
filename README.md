@@ -1,5 +1,7 @@
 # Rust for Windows Installer Custom Actions
 
+![build status](https://github.com/heaths/msica-rs/actions/workflows/ci.yml/badge.svg?event=push)
+
 Writing [custom actions] for [Windows Installer] can be difficult enough already,
 but using Rust can help mitigate some potential issues concerning memory and handle leaks.
 
