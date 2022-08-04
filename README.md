@@ -20,7 +20,7 @@ pub extern "C" fn MyCustomAction(h: MSIHANDLE) -> u32 {
 
     let session = Session::from(h);
     let record = Record::with_fields(
-        Some("this is [1] [2]".to_owned()),
+        Some("this is [1] [2]"),
         vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
     );
     session.message(MessageType::User, &record);
