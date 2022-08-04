@@ -20,7 +20,7 @@ use std::ops::Deref;
 ///     let session = Session::from(h);
 ///     let record = Record::with_fields(
 ///         Some("this is [1] [2]".to_owned()),
-///         vec![Field::Integer(1), Field::String("example".to_owned())],
+///         vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
 ///     );
 ///     session.message(MessageType::User, &record);
 ///
