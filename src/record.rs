@@ -59,13 +59,13 @@ impl Record {
             let mut record = Record { h: h.to_owned() };
 
             if let Some(text) = text {
-                record.set_string_data(0, &text);
+                record.set_string_data(0, Some(&text));
             }
 
             for (idx, field) in fields.iter().enumerate() {
                 let idx: u32 = idx.try_into().unwrap();
                 match field {
-                    Field::StringData(s) => record.set_string_data(idx + 1, s),
+                    Field::StringData(s) => record.set_string_data(idx + 1, Some(s)),
                     Field::IntegerData(i) => record.set_integer_data(idx + 1, *i),
                     Field::Null => {}
                 }
@@ -174,7 +174,7 @@ impl Record {
         }
     }
 
-    /// Sets a string field in a [`Record`].
+    /// Sets a string field in a [`Record`]. Pass `None` to clear the field.
     ///
     /// Field indices are 1-based, though you can set a template string in field 0.
     ///
@@ -184,14 +184,17 @@ impl Record {
     /// use msica::{Field, Record};
     ///
     /// let mut record = Record::new(42);
-    /// record.set_string_data(1, "example");
+    /// record.set_string_data(1, Some("example"));
     /// assert_eq!(record.string_data(1), "example");
     /// ```
-    pub fn set_string_data(&mut self, field: u32, value: &str) {
+    pub fn set_string_data(&mut self, field: u32, value: Option<&str>) {
         unsafe {
             // TODO: Return result containing NulError if returned.
-            let s = CString::new(value).unwrap();
-            ffi::MsiRecordSetString(self.into(), field, s.as_ptr());
+            let value = match value {
+                Some(s) => CString::new(s).unwrap(),
+                None => CString::default(),
+            };
+            ffi::MsiRecordSetString(self.into(), field, value.as_ptr());
         }
     }
 

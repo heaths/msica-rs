@@ -71,6 +71,23 @@ impl Session {
             String::default()
         }
     }
+
+    /// Sets the value of the named property. Pass `None` to clear the field.
+    pub fn set_property(&mut self, name: &str, value: Option<&str>) {
+        unsafe {
+            let name = CString::new(name).unwrap();
+            let value = match value {
+                Some(s) => CString::new(s).unwrap(),
+                None => CString::default(),
+            };
+
+            ffi::MsiSetProperty(
+                self.h,
+                name.as_ptr() as ffi::LPCSTR,
+                value.as_ptr() as ffi::LPCSTR,
+            );
+        }
+    }
 }
 
 impl Deref for Session {

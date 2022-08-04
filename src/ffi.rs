@@ -58,6 +58,9 @@ extern "C" {
 
     #[link_name = "MsiRecordSetStringA"]
     pub fn MsiRecordSetString(hRecord: MSIHANDLE, iField: u32, szValue: LPCSTR) -> u32;
+
+    #[link_name = "MsiSetPropertyA"]
+    pub fn MsiSetProperty(hInstall: MSIHANDLE, szName: LPCSTR, szValue: LPCSTR) -> u32;
 }
 
 #[derive(Copy, Clone)]
