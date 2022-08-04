@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #![allow(dead_code)]
+#![doc = include_str!("../README.md")]
 
 // See https://docs.microsoft.com/windows/win32/msi/automation-interface-reference
 
