@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!--
+  Copyright 2022 Heath Stewart.
+  Licensed under the MIT License. See LICENSE.txt in the project root for license information.
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <Binary Id="DeferredExample" SourceFile="examples\deferred.dll" />
+    <CustomAction Id="DeferredExampleCustomAction" BinaryKey="DeferredExample" DllEntry="DeferredExampleCustomAction" />
+    <CustomAction Id="DeferredExampleCustomActionDeferred" BinaryKey="DeferredExample" DllEntry="DeferredExampleCustomActionDeferred" Execute="deferred" />
+    <InstallExecuteSequence>
+      <Custom Action="DeferredExampleCustomAction" After="InstallInitialize" />
+    </InstallExecuteSequence>
+  </Fragment>
+</Wix>

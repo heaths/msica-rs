@@ -5,18 +5,18 @@ use msica::*;
 const ERROR_SUCCESS: u32 = 0;
 
 #[no_mangle]
-pub extern "C" fn ExampleCustomAction(h: MSIHANDLE) -> u32 {
+pub extern "C" fn DeferredExampleCustomAction(h: MSIHANDLE) -> u32 {
     let session = Session::from(h);
 
     // Simulate reading data from a custom table.
     for i in 0..5 {
-        session.do_deferred_action("ExampleCustomActionDeferred", &i.to_string())
+        session.do_deferred_action("DeferredExampleCustomActionDeferred", &i.to_string())
     }
     ERROR_SUCCESS
 }
 
 #[no_mangle]
-pub extern "C" fn ExampleCustomActionDeferred(h: MSIHANDLE) -> u32 {
+pub extern "C" fn DeferredExampleCustomActionDeferred(h: MSIHANDLE) -> u32 {
     let session = Session::from(h);
 
     // Process the custom action data passed by the immediate custom action.

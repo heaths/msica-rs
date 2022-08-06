@@ -11,7 +11,7 @@ on:
 
 defaults:
   run:
-    shell: bash
+    shell: pwsh
 
 env:
   CARGO_INCREMENTAL: 0
@@ -21,19 +21,27 @@ jobs:
   test:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up toolchain
+        uses: actions-rs/toolchain@v1
         with:
           components: rustfmt
           override: true
           profile: minimal
           target: x86_64-pc-windows-msvc
           toolchain: stable
-      - uses: actions-rs/cargo@v1
+      - name: Check formatting
+        uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: --all -- --check
-      - uses: actions-rs/cargo@v1
+      - name: Test
+        uses: actions-rs/cargo@v1
         with:
           command: test
           args: --all
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v1.1
+      - name: Build example MSI
+        run: msbuild -t:build examples/product.wixproj
