@@ -6,6 +6,7 @@
     "INSTALLMESSAGE",
     "LPCSTR",
     "LPSTR",
+    "msbuild",
     "msica",
     "MSIHANDLE",
     "PMSIHANDLE",

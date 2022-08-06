@@ -4,6 +4,10 @@
 #![allow(dead_code)]
 #![doc = include_str!("../README.md")]
 
+// Fail fast on non-Windows platforms.
+#[cfg(not(target_os = "windows"))]
+compile_error!("supported on windows only");
+
 // See https://docs.microsoft.com/windows/win32/msi/automation-interface-reference
 
 mod ffi;
