@@ -20,7 +20,7 @@ pub use session::Session;
 use std::fmt::Debug;
 
 /// Message types that can be processed by a custom action.
-#[repr(C)]
+#[repr(u32)]
 pub enum MessageType {
     Error = 0x0100_0000,
     Warning = 0x0200_0000,
@@ -28,6 +28,43 @@ pub enum MessageType {
     Info = 0x0400_0000,
     Progress = 0x0a00_0000,
     CommonData = 0x0b00_0000,
+}
+
+/// Run modes passed to `Session::mode`.
+#[repr(u32)]
+pub enum RunMode {
+    /// Administrative mode install, else product install.
+    Admin = 0,
+    /// Advertise mode of install.
+    Advertise = 1,
+    ///Maintenance mode database loaded.
+    Maintenance = 2,
+    /// Rollback is enabled.
+    RollbackEnabled = 3,
+    /// Log file is active.
+    LogEnabled = 4,
+    /// Executing or spooling operations.
+    Operations = 5,
+    /// Reboot is needed.
+    RebootAtEnd = 6,
+    /// Reboot is needed to continue installation
+    RebootNow = 7,
+    /// Installing files from cabinets and files using Media table.
+    Cabinet = 8,
+    /// Source files use only short file names.
+    SourceShortNames = 9,
+    /// Target files are to use only short file names.
+    TargetShortNames = 10,
+    /// Operating system is Windows 98/95.
+    Windows9x = 12,
+    /// Operating system supports advertising of products.
+    ZawEnabled = 13,
+    /// Deferred custom action called from install script execution.
+    Scheduled = 16,
+    /// Deferred custom action called from rollback execution script.
+    Rollback = 17,
+    /// Deferred custom action called from commit execution script.
+    Commit = 18,
 }
 
 /// A Windows Installer handle. This handle is not automatically closed.

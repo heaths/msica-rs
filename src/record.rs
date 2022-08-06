@@ -311,4 +311,16 @@ mod tests {
         );
         assert_eq!("test 2 of two", record.format_text());
     }
+
+    #[test]
+    fn from_str() {
+        let record = Record::from("test");
+        assert_eq!(record.string_data(0), "test");
+    }
+
+    #[test]
+    fn from_string() {
+        let record = Record::from("test".to_owned());
+        assert_eq!(record.string_data(0), "test");
+    }
 }

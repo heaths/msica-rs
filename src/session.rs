@@ -2,7 +2,7 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 use super::ffi;
-use super::{MessageType, Record, MSIHANDLE};
+use super::{MessageType, Record, RunMode, MSIHANDLE};
 use std::ffi::CString;
 use std::ops::Deref;
 
@@ -67,10 +67,7 @@ impl Session {
     /// pub extern "C" fn MyDeferredCustomAction(h: MSIHANDLE) -> u32 {
     ///     let session = Session::from(h);
     ///     let data = session.property("CustomActionData");
-    ///     let record = Record::with_fields(
-    ///         Some("Running deferred custom action [1]"),
-    ///         vec![Field::StringData(data)],
-    ///     );
+    ///     let record = Record::from(data);
     ///     session.message(MessageType::Info, &record);
     ///     ERROR_SUCCESS
     /// }
@@ -82,7 +79,33 @@ impl Session {
 
     /// Processes a [`Record`] within the [`Session`].
     pub fn message(&self, kind: MessageType, record: &Record) -> i32 {
-        unsafe { ffi::MsiProcessMessage(self.h, kind as u32, record.into()) }
+        unsafe { ffi::MsiProcessMessage(self.h, kind, record.into()) }
+    }
+
+    /// Returns a boolean indicating whether the specific property passed into the function is currently set (true) or not set (false).
+    ///
+    /// # Example
+    ///
+    /// You could use the same custom action entry point for scheduling and executing deferred actions:
+    ///
+    /// ```no_run
+    /// use msica::*;
+    ///
+    /// #[no_mangle]
+    /// pub extern "C" fn MyCustomAction(h: MSIHANDLE) -> u32 {
+    ///     let session = Session::from(h);
+    ///     if !session.mode(RunMode::Scheduled) {
+    ///         session.do_deferred_action("MyCustomAction", "Hello, world!");
+    ///     } else {
+    ///         let data = session.property("CustomActionData");
+    ///         let record = Record::with_fields(Some(data.as_str()), vec![]);
+    ///         session.message(MessageType::User, &record);
+    ///     }
+    ///     ERROR_SUCCESS
+    /// }
+    /// ```
+    pub fn mode(&self, mode: RunMode) -> bool {
+        unsafe { ffi::MsiGetMode(self.h, mode).as_bool() }
     }
 
     /// Gets the value of the named property, or an empty string if undefined.
