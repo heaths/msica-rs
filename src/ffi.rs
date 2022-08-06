@@ -1,7 +1,7 @@
 // Copyright 2022 Heath Stewart.
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
-use super::MSIHANDLE;
+use super::{MessageType, RunMode, MSIHANDLE};
 use std::{ops::Not, os::raw::c_char};
 
 pub(crate) type LPSTR = *mut c_char;
@@ -25,6 +25,8 @@ extern "C" {
     #[link_name = "MsiDoActionA"]
     pub fn MsiDoAction(hInstall: MSIHANDLE, szAction: LPCSTR) -> u32;
 
+    pub fn MsiGetMode(hInstall: MSIHANDLE, eRunMode: RunMode) -> BOOL;
+
     #[link_name = "MsiGetPropertyA"]
     pub fn MsiGetProperty(
         hInstall: MSIHANDLE,
@@ -41,7 +43,11 @@ extern "C" {
         pcchResultBuf: *mut u32,
     ) -> u32;
 
-    pub fn MsiProcessMessage(hInstall: MSIHANDLE, eMessageType: u32, hRecord: MSIHANDLE) -> i32;
+    pub fn MsiProcessMessage(
+        hInstall: MSIHANDLE,
+        eMessageType: MessageType,
+        hRecord: MSIHANDLE,
+    ) -> i32;
 
     pub fn MsiRecordGetFieldCount(hRecord: MSIHANDLE) -> u32;
 
