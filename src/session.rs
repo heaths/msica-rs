@@ -79,7 +79,7 @@ impl Session {
 
     /// Processes a [`Record`] within the [`Session`].
     pub fn message(&self, kind: MessageType, record: &Record) -> i32 {
-        unsafe { ffi::MsiProcessMessage(self.h, kind, record.into()) }
+        unsafe { ffi::MsiProcessMessage(self.h, kind, **record) }
     }
 
     /// Returns a boolean indicating whether the specific property passed into the function is currently set (true) or not set (false).
@@ -170,6 +170,8 @@ impl Deref for Session {
 
 impl Drop for Session {
     fn drop(&mut self) {
+        // An MSIHANDLE must be closed when it was created by opening a package,
+        // but not closed when it was passed to a custom action.
         if self.owned {
             unsafe {
                 ffi::MsiCloseHandle(self.h);

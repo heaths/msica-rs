@@ -17,7 +17,7 @@ pub use ffi::{
 pub use record::{Field, Record};
 pub use session::Session;
 
-use std::fmt::Debug;
+use std::{fmt::Debug, ops::Deref};
 
 /// Message types that can be processed by a custom action.
 #[repr(u32)]
@@ -78,7 +78,7 @@ impl MSIHANDLE {
     }
 
     fn to_owned(&self) -> PMSIHANDLE {
-        PMSIHANDLE(self.0)
+        PMSIHANDLE(*self)
     }
 }
 
@@ -94,31 +94,36 @@ impl Debug for MSIHANDLE {
     }
 }
 
+impl Deref for MSIHANDLE {
+    type Target = u32;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 /// A Windows Installer handle. This handle is automatically closed when dropped.
 #[repr(transparent)]
-struct PMSIHANDLE(u32);
+struct PMSIHANDLE(MSIHANDLE);
 
 impl Debug for PMSIHANDLE {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "MSIHANDLE ({})", self.0)
+        write!(f, "MSIHANDLE ({})", *self.0)
     }
 }
 
 impl Drop for PMSIHANDLE {
     fn drop(&mut self) {
         unsafe {
-            ffi::MsiCloseHandle(self.into());
+            ffi::MsiCloseHandle(**self);
         }
     }
 }
 
-impl Into<MSIHANDLE> for PMSIHANDLE {
-    fn into(self) -> MSIHANDLE {
-        MSIHANDLE(self.0)
-    }
-}
-impl Into<MSIHANDLE> for &mut PMSIHANDLE {
-    fn into(self) -> MSIHANDLE {
-        MSIHANDLE(self.0)
+impl Deref for PMSIHANDLE {
+    type Target = MSIHANDLE;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
