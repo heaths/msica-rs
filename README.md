@@ -1,5 +1,6 @@
 # Rust for Windows Installer Custom Actions
 
+![latest version](https://img.shields.io/crates/v/msica?logo=rust)
 ![build status](https://github.com/heaths/msica-rs/actions/workflows/ci.yml/badge.svg?event=push)
 
 Writing [custom actions] for [Windows Installer] can be difficult enough already,
