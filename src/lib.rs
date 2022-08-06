@@ -71,6 +71,26 @@ pub enum RunMode {
     Commit = 18,
 }
 
+/// Gets the last Windows Installer error for the current process.
+///
+/// # Example
+///
+/// ```
+/// use msica::*;
+///
+/// if let Some(error) = last_error_record() {
+///     println!("last error: {}", error.format_text());
+/// }
+/// ```
+pub fn last_error_record() -> Option<Record> {
+    unsafe {
+        match ffi::MsiGetLastErrorRecord() {
+            h if !h.is_null() => Some(h.into()),
+            _ => None,
+        }
+    }
+}
+
 /// A Windows Installer handle. This handle is not automatically closed.
 #[derive(Clone, Copy)]
 #[repr(transparent)]
@@ -83,6 +103,10 @@ impl MSIHANDLE {
 
     fn to_owned(&self) -> PMSIHANDLE {
         PMSIHANDLE(*self)
+    }
+
+    fn is_null(&self) -> bool {
+        self.0 == 0
     }
 }
 

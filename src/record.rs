@@ -263,6 +263,12 @@ impl Deref for Record {
     }
 }
 
+impl From<MSIHANDLE> for Record {
+    fn from(h: MSIHANDLE) -> Self {
+        Record { h: h.to_owned() }
+    }
+}
+
 impl From<&str> for Record {
     fn from(s: &str) -> Self {
         unsafe {
