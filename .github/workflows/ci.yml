@@ -11,7 +11,7 @@ on:
 
 defaults:
   run:
-    shell: bash
+    shell: pwsh
 
 env:
   CARGO_INCREMENTAL: 0
@@ -44,4 +44,4 @@ jobs:
       - name: Set up MSBuild
         uses: microsoft/setup-msbuild@v1.1
       - name: Build example MSI
-        run: msbuild -t:build
+        run: msbuild -t:build examples/product.wixproj

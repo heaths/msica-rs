@@ -3,16 +3,21 @@
   "language": "en",
   "words": [
     "cdylib",
+
     "INSTALLMESSAGE",
     "LPCSTR",
     "LPSTR",
     "msbuild",
     "msica",
+    "msiexec",
     "MSIHANDLE",
     "PMSIHANDLE",
+    "pwsh",
     "repr",
     "rustfmt",
-    "USEREXIT"
+    "rustup",
+    "USEREXIT",
+    "wixproj"
   ],
   "ignoreRegExpList": [
     "INSTALLMESSAGE_\\w+"
