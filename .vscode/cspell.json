@@ -3,8 +3,8 @@
   "language": "en",
   "words": [
     "cdylib",
-
     "INSTALLMESSAGE",
+    "LANGID",
     "LPCSTR",
     "LPSTR",
     "msbuild",

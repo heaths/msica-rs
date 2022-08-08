@@ -2,7 +2,7 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 use super::ffi;
-use super::{MessageType, Record, RunMode, MSIHANDLE};
+use super::{Database, MessageType, Record, RunMode, MSIHANDLE};
 use std::ffi::CString;
 use std::ops::Deref;
 
@@ -27,10 +27,16 @@ use std::ops::Deref;
 /// ```
 pub struct Session {
     h: MSIHANDLE,
-    owned: bool,
 }
 
 impl Session {
+    /// Returns the active database for the installation. This function returns a read-only [`Database`].
+    pub fn database(&self) -> Database {
+        unsafe {
+            let h = ffi::MsiGetActiveDatabase(self.h);
+            Database::from(h)
+        }
+    }
     /// Runs the specified immediate custom action, or schedules a deferred custom action.
     /// If `None` the default action is run e.g., `INSTALL`.
     ///
@@ -75,6 +81,11 @@ impl Session {
     pub fn do_deferred_action(&self, action: &str, custom_action_data: &str) {
         self.set_property(action, Some(custom_action_data));
         self.do_action(Some(action));
+    }
+
+    /// The numeric language ID used by the current install session.
+    pub fn language(&self) -> u16 {
+        unsafe { ffi::MsiGetLanguage(self.h) }
     }
 
     /// Processes a [`Record`] within the [`Session`].
@@ -168,20 +179,8 @@ impl Deref for Session {
     }
 }
 
-impl Drop for Session {
-    fn drop(&mut self) {
-        // An MSIHANDLE must be closed when it was created by opening a package,
-        // but not closed when it was passed to a custom action.
-        if self.owned {
-            unsafe {
-                ffi::MsiCloseHandle(self.h);
-            }
-        }
-    }
-}
-
 impl From<MSIHANDLE> for Session {
     fn from(h: MSIHANDLE) -> Self {
-        Session { h, owned: false }
+        Session { h }
     }
 }

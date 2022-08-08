@@ -10,10 +10,12 @@ compile_error!("supported on windows only");
 
 // See https://docs.microsoft.com/windows/win32/msi/automation-interface-reference
 
+mod database;
 mod ffi;
 mod record;
 mod session;
 
+pub use database::Database;
 pub use ffi::{
     ERROR_FUNCTION_NOT_CALLED, ERROR_INSTALL_FAILURE, ERROR_INSTALL_USEREXIT, ERROR_NO_MORE_ITEMS,
     ERROR_SUCCESS,
