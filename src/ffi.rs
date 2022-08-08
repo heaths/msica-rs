@@ -25,6 +25,10 @@ extern "C" {
     #[link_name = "MsiDoActionA"]
     pub fn MsiDoAction(hInstall: MSIHANDLE, szAction: LPCSTR) -> u32;
 
+    pub fn MsiGetActiveDatabase(hInstall: MSIHANDLE) -> MSIHANDLE;
+
+    pub fn MsiGetLanguage(hInstall: MSIHANDLE) -> u16;
+
     pub fn MsiGetLastErrorRecord() -> MSIHANDLE;
 
     pub fn MsiGetMode(hInstall: MSIHANDLE, eRunMode: RunMode) -> BOOL;
