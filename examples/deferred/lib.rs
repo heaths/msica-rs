@@ -8,9 +8,17 @@ const ERROR_SUCCESS: u32 = 0;
 pub extern "C" fn DeferredExampleCustomAction(h: MSIHANDLE) -> u32 {
     let session = Session::from(h);
 
-    // Simulate reading data from a custom table.
-    for i in 0..5 {
-        session.do_deferred_action("DeferredExampleCustomActionDeferred", &i.to_string())
+    let database = session.database();
+    let mut view = database
+        .open_view("SELECT `Cardinal`, `Ordinal` FROM `DeferredExample` ORDER BY `Cardinal`");
+    view.execute(None);
+    for record in view.into_iter() {
+        let data = format!(
+            "{}\t{}",
+            record.integer_data(1).unwrap(),
+            record.string_data(2)
+        );
+        session.do_deferred_action("DeferredExampleCustomActionDeferred", &data);
     }
     ERROR_SUCCESS
 }
@@ -22,9 +30,13 @@ pub extern "C" fn DeferredExampleCustomActionDeferred(h: MSIHANDLE) -> u32 {
     // Process the custom action data passed by the immediate custom action.
     // This data is always made available in a property named "CustomActionData".
     let data = session.property("CustomActionData");
+    let fields: Vec<&str> = data.split('\t').collect();
     let record = Record::with_fields(
-        Some("Running deferred custom action [1]"),
-        vec![Field::StringData(data)],
+        Some("Running the [2] ([1]) deferred custom action"),
+        vec![
+            Field::StringData(fields[0].to_string()),
+            Field::StringData(fields[1].to_string()),
+        ],
     );
     session.message(MessageType::Info, &record);
     ERROR_SUCCESS

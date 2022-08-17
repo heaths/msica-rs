@@ -38,7 +38,12 @@ jobs:
         with:
           command: test
           args: --all
-      - uses: actions-rs/cargo@v1
+      - name: Release
+        run: gh release create ${{ github.ref_name }} --generate-notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish
+        uses: actions-rs/cargo@v1
         with:
           command: publish
         env:

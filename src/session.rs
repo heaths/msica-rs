@@ -4,6 +4,7 @@
 use super::ffi;
 use super::{Database, MessageType, Record, RunMode, MSIHANDLE};
 use std::ffi::CString;
+use std::marker::PhantomData;
 use std::ops::Deref;
 
 /// A Windows Installer session passed as an [`MSIHANDLE`] to custom actions.
@@ -25,18 +26,20 @@ use std::ops::Deref;
 ///     ERROR_SUCCESS
 /// }
 /// ```
-pub struct Session {
+pub struct Session<'a> {
     h: MSIHANDLE,
+    _phantom: PhantomData<&'a ()>,
 }
 
-impl Session {
+impl<'a> Session<'a> {
     /// Returns the active database for the installation. This function returns a read-only [`Database`].
-    pub fn database(&self) -> Database {
+    pub fn database(&'a self) -> Database<'a> {
         unsafe {
             let h = ffi::MsiGetActiveDatabase(self.h);
             Database::from(h)
         }
     }
+
     /// Runs the specified immediate custom action, or schedules a deferred custom action.
     /// If `None` the default action is run e.g., `INSTALL`.
     ///
@@ -171,7 +174,7 @@ impl Session {
     }
 }
 
-impl Deref for Session {
+impl<'a> Deref for Session<'a> {
     type Target = MSIHANDLE;
 
     fn deref(&self) -> &Self::Target {
@@ -179,8 +182,11 @@ impl Deref for Session {
     }
 }
 
-impl From<MSIHANDLE> for Session {
+impl<'a> From<MSIHANDLE> for Session<'a> {
     fn from(h: MSIHANDLE) -> Self {
-        Session { h }
+        Session {
+            h,
+            _phantom: PhantomData,
+        }
     }
 }
