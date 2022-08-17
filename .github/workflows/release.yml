@@ -13,7 +13,7 @@ permissions:
 
 defaults:
   run:
-    shell: bash
+    shell: pwsh
 
 env:
   CARGO_INCREMENTAL: 0
@@ -39,7 +39,7 @@ jobs:
           command: test
           args: --all
       - name: Release
-        run: gh release create ${GITHUB_REF#refs/tags/} --generate-notes
+        run: gh release create ${{ github.ref_name }} --generate-notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish
