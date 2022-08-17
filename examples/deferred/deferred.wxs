@@ -11,5 +11,22 @@
     <InstallExecuteSequence>
       <Custom Action="DeferredExampleCustomAction" After="InstallInitialize" />
     </InstallExecuteSequence>
+
+    <CustomTable Id="DeferredExample">
+      <Column Id="Cardinal" Type="int" Category="Integer" Width="2" PrimaryKey="yes" />
+      <Column Id="Ordinal" Type="string" Category="LowerCase" Localizable="yes" />
+      <Row>
+        <Data Column="Cardinal">1</Data>
+        <Data Column="Ordinal">first</Data>
+      </Row>
+      <Row>
+        <Data Column="Cardinal">2</Data>
+        <Data Column="Ordinal">second</Data>
+      </Row>
+      <Row>
+        <Data Column="Cardinal">3</Data>
+        <Data Column="Ordinal">third</Data>
+      </Row>
+    </CustomTable>
   </Fragment>
 </Wix>

@@ -25,11 +25,12 @@ impl From<&str> for Field {
 }
 
 /// A collection of [`Field`] containing strings, integers, and byte streams.
-pub struct Record {
-    h: PMSIHANDLE,
+#[derive(Clone)]
+pub struct Record<'a> {
+    h: PMSIHANDLE<'a>,
 }
 
-impl Record {
+impl<'a> Record<'a> {
     /// Creates an empty [`Record`] with capacity for the count of fields specified.
     ///
     /// Field indices are 1-based.
@@ -213,10 +214,15 @@ impl Record {
     ///     Some("this is [1] [2]"),
     ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
     /// );
-    /// assert_eq!(record.integer_data(1), 1);
+    /// assert_eq!(record.integer_data(1), Some(1));
     /// ```
-    pub fn integer_data(&self, field: u32) -> i32 {
-        unsafe { ffi::MsiRecordGetInteger(*self.h, field) }
+    pub fn integer_data(&self, field: u32) -> Option<i32> {
+        unsafe {
+            match ffi::MsiRecordGetInteger(*self.h, field) {
+                i if i == ffi::MSI_NULL_INTEGER => None,
+                i => Some(i),
+            }
+        }
     }
 
     /// Sets an integer field in a [`Record`].
@@ -230,12 +236,20 @@ impl Record {
     ///
     /// let mut record = Record::new(1);
     /// record.set_integer_data(1, 42);
-    /// assert_eq!(record.integer_data(1), 42);
+    /// assert_eq!(record.integer_data(1), Some(42));
     /// ```
     pub fn set_integer_data(&self, field: u32, value: i32) {
         unsafe {
             ffi::MsiRecordSetInteger(*self.h, field, value);
         }
+    }
+
+    /// Reads bytes from a record field that contains stream data.
+    ///
+    /// Field indices are 1-based.
+    #[allow(unused_variables)]
+    pub fn stream_data(&self, field: u32) -> Vec<u8> {
+        todo!()
     }
 
     /// Gets whether a field is null in a [`Record`].
@@ -255,7 +269,7 @@ impl Record {
     }
 }
 
-impl Deref for Record {
+impl<'a> Deref for Record<'a> {
     type Target = MSIHANDLE;
 
     fn deref(&self) -> &Self::Target {
@@ -263,13 +277,13 @@ impl Deref for Record {
     }
 }
 
-impl From<MSIHANDLE> for Record {
+impl<'a> From<MSIHANDLE> for Record<'a> {
     fn from(h: MSIHANDLE) -> Self {
         Record { h: h.to_owned() }
     }
 }
 
-impl From<&str> for Record {
+impl<'a> From<&str> for Record<'a> {
     fn from(s: &str) -> Self {
         unsafe {
             let h = ffi::MsiCreateRecord(0u32);
@@ -282,7 +296,7 @@ impl From<&str> for Record {
     }
 }
 
-impl From<String> for Record {
+impl<'a> From<String> for Record<'a> {
     fn from(s: String) -> Self {
         unsafe {
             let h = ffi::MsiCreateRecord(0u32);
@@ -318,5 +332,12 @@ mod tests {
 
         record.set_string_data(1, None);
         assert!(record.is_null(1));
+        assert_eq!(record.string_data(1), "");
+    }
+
+    #[test]
+    fn integer_data_from_string() {
+        let record = Record::with_fields(None, vec![Field::StringData("test".to_owned())]);
+        assert_eq!(record.integer_data(1), None);
     }
 }

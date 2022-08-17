@@ -14,6 +14,7 @@ pub const ERROR_INSTALL_FAILURE: u32 = 1603;
 pub const ERROR_FUNCTION_NOT_CALLED: u32 = 1626;
 
 pub(crate) const ERROR_MORE_DATA: u32 = 234;
+pub(crate) const MSI_NULL_INTEGER: i32 = -0x8000_0000;
 
 // cspell:ignore pcch
 #[link(name = "msi")]
@@ -21,6 +22,20 @@ extern "C" {
     pub fn MsiCloseHandle(hAny: MSIHANDLE) -> u32;
 
     pub fn MsiCreateRecord(cParams: u32) -> MSIHANDLE;
+
+    #[link_name = "MsiDatabaseGetPrimaryKeysA"]
+    pub fn MsiDatabaseGetPrimaryKeys(
+        hDatabase: MSIHANDLE,
+        szTableName: LPCSTR,
+        hRecord: &mut MSIHANDLE,
+    ) -> u32;
+
+    #[link_name = "MsiDatabaseOpenViewA"]
+    pub fn MsiDatabaseOpenView(
+        hDatabase: MSIHANDLE,
+        szQuery: LPCSTR,
+        phView: &mut MSIHANDLE,
+    ) -> u32;
 
     #[link_name = "MsiDoActionA"]
     pub fn MsiDoAction(hInstall: MSIHANDLE, szAction: LPCSTR) -> u32;
@@ -76,6 +91,12 @@ extern "C" {
 
     #[link_name = "MsiSetPropertyA"]
     pub fn MsiSetProperty(hInstall: MSIHANDLE, szName: LPCSTR, szValue: LPCSTR) -> u32;
+
+    pub fn MsiViewClose(hView: MSIHANDLE) -> u32;
+
+    pub fn MsiViewExecute(hView: MSIHANDLE, hRecord: MSIHANDLE) -> u32;
+
+    pub fn MsiViewFetch(hView: MSIHANDLE, phRecord: &mut MSIHANDLE) -> u32;
 }
 
 #[derive(Copy, Clone)]
