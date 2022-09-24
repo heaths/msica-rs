@@ -9,10 +9,24 @@ pub extern "C" fn DeferredExampleCustomAction(h: MSIHANDLE) -> u32 {
     let session = Session::from(h);
 
     let database = session.database();
-    let mut view = database
+    let view = database
         .open_view("SELECT `Cardinal`, `Ordinal` FROM `DeferredExample` ORDER BY `Cardinal`");
+
+    // Add another row.
+    view.modify(
+        ModifyMode::InsertTemporary,
+        &Record::with_fields(
+            None,
+            vec![
+                Field::IntegerData(100),
+                Field::StringData("last".to_string()),
+            ],
+        ),
+    );
+
+    // Schedule custom actions for each row.
     view.execute(None);
-    for record in view.into_iter() {
+    for record in view {
         let data = format!(
             "{}\t{}",
             record.integer_data(1).unwrap(),

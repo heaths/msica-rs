@@ -2,7 +2,7 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 use super::ffi;
-use super::{Record, MSIHANDLE, PMSIHANDLE};
+use super::{ModifyMode, Record, MSIHANDLE, PMSIHANDLE};
 use std::ops::Deref;
 
 /// The `View` object represents a result set obtained when processing a query
@@ -18,7 +18,7 @@ pub struct View<'a> {
 
 impl<'a> View<'a> {
     /// Releases the result set for an executed view.
-    pub fn close(&mut self) {
+    pub fn close(&self) {
         unsafe {
             ffi::MsiViewClose(*self.h);
         }
@@ -28,7 +28,7 @@ impl<'a> View<'a> {
     /// For more information, see [SQL syntax](https://docs.microsoft.com/windows/win32/msi/sql-syntax).
     ///
     /// The values of these parameters are passed in as the corresponding fields of a parameter record.
-    pub fn execute(&mut self, record: Option<Record<'a>>) {
+    pub fn execute(&self, record: Option<Record<'a>>) {
         unsafe {
             let h = match record {
                 Some(r) => *r,
@@ -36,6 +36,20 @@ impl<'a> View<'a> {
             };
 
             ffi::MsiViewExecute(*self.h, h);
+        }
+    }
+
+    /// Updates a fetched record.
+    ///
+    /// You can pass `Update` or `Delete` with a record immediately after using `Insert`, `InsertTemporary`, or `Seek` provided you have *not* modified the 0th field of the inserted or sought record.
+    ///
+    /// You cannot fetch a record that contains binary data from one database and then use that record to insert the data into another database.
+    ///
+    /// Note that custom actions can only add, modify, or remove temporary rows, columns, or tables from a database.
+    /// Custom actions cannot modify persistent data in a database, such as data that is a part of the database stored on disk.
+    pub fn modify(&self, mode: ModifyMode, record: &Record) {
+        unsafe {
+            ffi::MsiViewModify(*self.h, mode, **record);
         }
     }
 }
