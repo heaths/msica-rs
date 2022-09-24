@@ -15,11 +15,11 @@ impl<'a> Database<'a> {
     /// [SQL string](https://docs.microsoft.com/windows/win32/msi/sql-syntax).
     pub fn open_view(&'a self, sql: &str) -> View<'a> {
         unsafe {
-            let mut h = MSIHANDLE::null();
+            let h = MSIHANDLE::null();
             let sql = CString::new(sql).unwrap();
 
             // TODO: Return Result<View<'a>, ?>.
-            ffi::MsiDatabaseOpenView(*self.h, sql.as_ptr(), &mut h);
+            ffi::MsiDatabaseOpenView(*self.h, sql.as_ptr(), &h);
 
             View::from(h)
         }
@@ -31,11 +31,11 @@ impl<'a> Database<'a> {
     /// The field count of the record is the count of primary key columns.
     pub fn primary_keys(&'a self, table: &str) -> Record<'a> {
         unsafe {
-            let mut h = MSIHANDLE::null();
+            let h = MSIHANDLE::null();
             let table = CString::new(table).unwrap();
 
             // TODO: Return Result<View<'a>, ?>.
-            ffi::MsiDatabaseGetPrimaryKeys(*self.h, table.as_ptr(), &mut h);
+            ffi::MsiDatabaseGetPrimaryKeys(*self.h, table.as_ptr(), &h);
 
             Record::from(h)
         }

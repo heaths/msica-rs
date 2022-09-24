@@ -1,6 +1,8 @@
 // Copyright 2022 Heath Stewart.
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
+use crate::ModifyMode;
+
 use super::{MessageType, RunMode, MSIHANDLE};
 use std::{ops::Not, os::raw::c_char};
 
@@ -27,15 +29,11 @@ extern "C" {
     pub fn MsiDatabaseGetPrimaryKeys(
         hDatabase: MSIHANDLE,
         szTableName: LPCSTR,
-        hRecord: &mut MSIHANDLE,
+        hRecord: &MSIHANDLE,
     ) -> u32;
 
     #[link_name = "MsiDatabaseOpenViewA"]
-    pub fn MsiDatabaseOpenView(
-        hDatabase: MSIHANDLE,
-        szQuery: LPCSTR,
-        phView: &mut MSIHANDLE,
-    ) -> u32;
+    pub fn MsiDatabaseOpenView(hDatabase: MSIHANDLE, szQuery: LPCSTR, phView: &MSIHANDLE) -> u32;
 
     #[link_name = "MsiDoActionA"]
     pub fn MsiDoAction(hInstall: MSIHANDLE, szAction: LPCSTR) -> u32;
@@ -96,7 +94,9 @@ extern "C" {
 
     pub fn MsiViewExecute(hView: MSIHANDLE, hRecord: MSIHANDLE) -> u32;
 
-    pub fn MsiViewFetch(hView: MSIHANDLE, phRecord: &mut MSIHANDLE) -> u32;
+    pub fn MsiViewFetch(hView: MSIHANDLE, phRecord: &MSIHANDLE) -> u32;
+
+    pub fn MsiViewModify(hView: MSIHANDLE, eModifyMode: ModifyMode, hRecord: MSIHANDLE) -> u32;
 }
 
 #[derive(Copy, Clone)]
