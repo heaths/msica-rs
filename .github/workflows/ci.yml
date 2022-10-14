@@ -44,4 +44,6 @@ jobs:
       - name: Set up MSBuild
         uses: microsoft/setup-msbuild@v1.1
       - name: Build example MSI
-        run: msbuild -t:build examples/product.wixproj
+        run: msbuild -t:build examples/example.wixproj
+      - name: Install example MSI
+        run: start-process msiexec.exe -args '/i', "$PWD\\target\\debug\\example.msi", '/qn' -wait
