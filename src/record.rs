@@ -2,9 +2,7 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 use super::ffi;
-use super::{MSIHANDLE, PMSIHANDLE};
-use std::ffi::CString;
-use std::ops::Deref;
+use std::{ffi::CString, fmt::Display};
 
 /// A field in a [`Record`].
 pub enum Field {
@@ -18,19 +16,13 @@ pub enum Field {
     Null,
 }
 
-impl From<&str> for Field {
-    fn from(s: &str) -> Self {
-        Field::StringData(s.to_owned())
-    }
-}
-
 /// A collection of [`Field`] containing strings, integers, and byte streams.
-#[derive(Clone)]
-pub struct Record<'a> {
-    h: PMSIHANDLE<'a>,
+#[derive(Debug)]
+pub struct Record {
+    pub(crate) h: ffi::PMSIHANDLE,
 }
 
-impl<'a> Record<'a> {
+impl Record {
     /// Creates an empty [`Record`] with capacity for the count of fields specified.
     ///
     /// Field indices are 1-based.
@@ -108,7 +100,7 @@ impl<'a> Record<'a> {
             let value = CString::default();
 
             if ffi::MsiFormatRecord(
-                MSIHANDLE::null(),
+                ffi::MSIHANDLE::null(),
                 *self.h,
                 value.as_ptr() as ffi::LPSTR,
                 &mut value_len as *mut u32,
@@ -118,7 +110,7 @@ impl<'a> Record<'a> {
                 let mut value: Vec<u8> = vec![0; value_len as usize];
 
                 ffi::MsiFormatRecord(
-                    MSIHANDLE::null(),
+                    ffi::MSIHANDLE::null(),
                     *self.h,
                     value.as_mut_ptr() as ffi::LPSTR,
                     &mut value_len as *mut u32,
@@ -186,7 +178,7 @@ impl<'a> Record<'a> {
     /// ```
     /// use msica::{Field, Record};
     ///
-    /// let mut record = Record::new(42);
+    /// let mut record = Record::new(1);
     /// record.set_string_data(1, Some("example"));
     /// assert_eq!(record.string_data(1), "example");
     /// ```
@@ -267,28 +259,21 @@ impl<'a> Record<'a> {
     pub fn is_null(&self, field: u32) -> bool {
         unsafe { ffi::MsiRecordIsNull(*self.h, field).as_bool() }
     }
-}
 
-impl<'a> Deref for Record<'a> {
-    type Target = MSIHANDLE;
-
-    fn deref(&self) -> &Self::Target {
-        &*self.h
-    }
-}
-
-impl<'a> From<MSIHANDLE> for Record<'a> {
-    fn from(h: MSIHANDLE) -> Self {
+    pub(crate) fn from_handle(h: ffi::MSIHANDLE) -> Self {
         Record { h: h.to_owned() }
     }
 }
 
-impl<'a> From<&str> for Record<'a> {
-    fn from(s: &str) -> Self {
+impl<T> From<T> for Record
+where
+    T: AsRef<str>,
+{
+    fn from(s: T) -> Self {
         unsafe {
             let h = ffi::MsiCreateRecord(0u32);
             // TODO: Return result containing NulError if returned.
-            let s = CString::new(s).unwrap();
+            let s = CString::new(s.as_ref()).unwrap();
             ffi::MsiRecordSetString(h, 0, s.as_ptr());
 
             Record { h: h.to_owned() }
@@ -296,16 +281,10 @@ impl<'a> From<&str> for Record<'a> {
     }
 }
 
-impl<'a> From<String> for Record<'a> {
-    fn from(s: String) -> Self {
-        unsafe {
-            let h = ffi::MsiCreateRecord(0u32);
-            // TODO: Return result containing NulError if returned.
-            let s = CString::new(s).unwrap();
-            ffi::MsiRecordSetString(h, 0, s.as_ptr());
-
-            Record { h: h.to_owned() }
-        }
+impl Display for Record {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = self.format_text();
+        write!(f, "{}", s)
     }
 }
 

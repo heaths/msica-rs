@@ -2,26 +2,24 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 use super::ffi;
-use super::{Record, View, MSIHANDLE, PMSIHANDLE};
+use super::{Record, View};
 use std::ffi::CString;
 
 /// The database for the current install session.
-pub struct Database<'a> {
-    h: PMSIHANDLE<'a>,
+pub struct Database {
+    h: ffi::PMSIHANDLE,
 }
 
-impl<'a> Database<'a> {
+impl Database {
     /// Returns a [`View`] object that represents the query specified by a
     /// [SQL string](https://docs.microsoft.com/windows/win32/msi/sql-syntax).
-    pub fn open_view(&'a self, sql: &str) -> View<'a> {
+    pub fn open_view(&self, sql: &str) -> View {
         unsafe {
-            let h = MSIHANDLE::null();
+            let h = ffi::MSIHANDLE::null();
             let sql = CString::new(sql).unwrap();
-
-            // TODO: Return Result<View<'a>, ?>.
             ffi::MsiDatabaseOpenView(*self.h, sql.as_ptr(), &h);
 
-            View::from(h)
+            View::from_handle(h)
         }
     }
 
@@ -29,21 +27,17 @@ impl<'a> Database<'a> {
     /// (comprising the primary keys) in succeeding fields corresponding to their column numbers.
     ///
     /// The field count of the record is the count of primary key columns.
-    pub fn primary_keys(&'a self, table: &str) -> Record<'a> {
+    pub fn primary_keys(&self, table: &str) -> Record {
         unsafe {
-            let h = MSIHANDLE::null();
+            let h = ffi::MSIHANDLE::null();
             let table = CString::new(table).unwrap();
-
-            // TODO: Return Result<View<'a>, ?>.
             ffi::MsiDatabaseGetPrimaryKeys(*self.h, table.as_ptr(), &h);
 
-            Record::from(h)
+            Record::from_handle(h)
         }
     }
-}
 
-impl<'a> From<MSIHANDLE> for Database<'a> {
-    fn from(h: MSIHANDLE) -> Self {
+    pub(crate) fn from_handle(h: ffi::MSIHANDLE) -> Self {
         Database { h: h.to_owned() }
     }
 }

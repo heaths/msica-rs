@@ -19,9 +19,7 @@ use msica::*;
 const ERROR_SUCCESS: u32 = 0;
 
 #[no_mangle]
-pub extern "C" fn MyCustomAction(h: MSIHANDLE) -> u32 {
-
-    let session = Session::from(h);
+pub extern "C" fn MyCustomAction(session: Session) -> u32 {
     let record = Record::with_fields(
         Some("this is [1] [2]"),
         vec![Field::IntegerData(1), Field::StringData("example".to_owned())],

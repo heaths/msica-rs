@@ -3,8 +3,12 @@
 
 use crate::ModifyMode;
 
-use super::{MessageType, RunMode, MSIHANDLE};
-use std::{ops::Not, os::raw::c_char};
+use super::{MessageType, RunMode};
+use std::{
+    fmt::Display,
+    ops::{Deref, Not},
+    os::raw::c_char,
+};
 
 pub(crate) type LPSTR = *mut c_char;
 pub(crate) type LPCSTR = *const c_char;
@@ -99,7 +103,7 @@ extern "C" {
     pub fn MsiViewModify(hView: MSIHANDLE, eModifyMode: ModifyMode, hRecord: MSIHANDLE) -> u32;
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 #[repr(transparent)]
 pub struct BOOL(i32);
 
@@ -116,12 +120,21 @@ impl Default for BOOL {
     }
 }
 
+impl Display for BOOL {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self.0 {
+            0 => "false",
+            _ => "true",
+        };
+        write!(f, "{}", s)
+    }
+}
+
 impl From<bool> for BOOL {
     fn from(value: bool) -> Self {
-        if value {
-            BOOL(1)
-        } else {
-            BOOL(0)
+        match value {
+            true => BOOL(1),
+            false => BOOL(0),
         }
     }
 }
@@ -129,10 +142,9 @@ impl From<bool> for BOOL {
 impl Not for BOOL {
     type Output = Self;
     fn not(self) -> Self::Output {
-        if self.as_bool() {
-            BOOL(0)
-        } else {
-            BOOL(1)
+        match self.as_bool() {
+            true => BOOL(0),
+            false => BOOL(1),
         }
     }
 }
@@ -140,5 +152,82 @@ impl Not for BOOL {
 impl PartialEq<bool> for BOOL {
     fn eq(&self, other: &bool) -> bool {
         self.as_bool() == *other
+    }
+}
+
+/// A Windows Installer handle. This handle is not automatically closed.
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[repr(transparent)]
+pub struct MSIHANDLE(u32);
+
+impl MSIHANDLE {
+    pub fn null() -> MSIHANDLE {
+        MSIHANDLE(0)
+    }
+
+    pub fn to_owned(&self) -> PMSIHANDLE {
+        PMSIHANDLE { h: *self }
+    }
+
+    pub fn is_null(&self) -> bool {
+        self.0 == 0
+    }
+}
+
+impl From<u32> for MSIHANDLE {
+    fn from(h: u32) -> Self {
+        MSIHANDLE(h)
+    }
+}
+
+impl Display for MSIHANDLE {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MSIHANDLE ({})", self.0)
+    }
+}
+
+impl Deref for MSIHANDLE {
+    type Target = u32;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// A Windows Installer handle. This handle is automatically closed when dropped.
+#[derive(Debug, PartialEq)]
+pub struct PMSIHANDLE {
+    h: MSIHANDLE,
+}
+
+impl Display for PMSIHANDLE {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MSIHANDLE ({})", *self.h)
+    }
+}
+
+impl Drop for PMSIHANDLE {
+    fn drop(&mut self) {
+        unsafe {
+            MsiCloseHandle(**self);
+        }
+    }
+}
+
+impl Deref for PMSIHANDLE {
+    type Target = MSIHANDLE;
+
+    fn deref(&self) -> &Self::Target {
+        &self.h
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_null() {
+        assert!(MSIHANDLE::null().is_null());
     }
 }

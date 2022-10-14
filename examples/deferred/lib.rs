@@ -5,9 +5,7 @@ use msica::*;
 const ERROR_SUCCESS: u32 = 0;
 
 #[no_mangle]
-pub extern "C" fn DeferredExampleCustomAction(h: MSIHANDLE) -> u32 {
-    let session = Session::from(h);
-
+pub extern "C" fn DeferredExampleCustomAction(session: Session) -> u32 {
     let database = session.database();
     let view = database
         .open_view("SELECT `Cardinal`, `Ordinal` FROM `DeferredExample` ORDER BY `Cardinal`");
@@ -38,9 +36,7 @@ pub extern "C" fn DeferredExampleCustomAction(h: MSIHANDLE) -> u32 {
 }
 
 #[no_mangle]
-pub extern "C" fn DeferredExampleCustomActionDeferred(h: MSIHANDLE) -> u32 {
-    let session = Session::from(h);
-
+pub extern "C" fn DeferredExampleCustomActionDeferred(session: Session) -> u32 {
     // Process the custom action data passed by the immediate custom action.
     // This data is always made available in a property named "CustomActionData".
     let data = session.property("CustomActionData");

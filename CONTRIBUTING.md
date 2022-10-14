@@ -39,8 +39,8 @@ These are used when building a Windows Installer package that will not register 
 so you can run it as many times as necessary to test custom actions:
 
 ```powershell
-msbuild -t:rebuild examples/product.wixproj
-msiexec /i $PWD/target/debug/product.msi /l*v install.log
+msbuild -t:rebuild examples/example.wixproj
+msiexec /i $PWD\target\debug\example.msi /l*v install.log
 ```
 
 You do not need to build the MSI, but it is recommended if you make any changes
