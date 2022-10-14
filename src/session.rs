@@ -2,10 +2,8 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 use super::ffi;
-use super::{Database, MessageType, Record, RunMode, MSIHANDLE};
+use super::{Database, MessageType, Record, RunMode};
 use std::ffi::CString;
-use std::marker::PhantomData;
-use std::ops::Deref;
 
 /// A Windows Installer session passed as an [`MSIHANDLE`] to custom actions.
 ///
@@ -16,8 +14,7 @@ use std::ops::Deref;
 /// const ERROR_SUCCESS: u32 = 0;
 ///
 /// #[no_mangle]
-/// pub extern "C" fn MyCustomAction(h: MSIHANDLE) -> u32 {
-///     let session = Session::from(h);
+/// pub extern "C" fn MyCustomAction(session: Session) -> u32 {
 ///     let record = Record::with_fields(
 ///         Some("this is [1] [2]"),
 ///         vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
@@ -26,17 +23,17 @@ use std::ops::Deref;
 ///     ERROR_SUCCESS
 /// }
 /// ```
-pub struct Session<'a> {
-    h: MSIHANDLE,
-    _phantom: PhantomData<&'a ()>,
+#[repr(transparent)]
+pub struct Session {
+    h: ffi::MSIHANDLE,
 }
 
-impl<'a> Session<'a> {
+impl Session {
     /// Returns the active database for the installation. This function returns a read-only [`Database`].
-    pub fn database(&'a self) -> Database<'a> {
+    pub fn database(&self) -> Database {
         unsafe {
             let h = ffi::MsiGetActiveDatabase(self.h);
-            Database::from(h)
+            Database::from_handle(h)
         }
     }
 
@@ -64,8 +61,7 @@ impl<'a> Session<'a> {
     /// const ERROR_SUCCESS: u32 = 0;
     ///
     /// #[no_mangle]
-    /// pub extern "C" fn MyCustomAction(h: MSIHANDLE) -> u32 {
-    ///     let session = Session::from(h);
+    /// pub extern "C" fn MyCustomAction(session: Session) -> u32 {
     ///     for i in 0..5 {
     ///         session.do_deferred_action("MyDeferredCustomAction", &i.to_string())
     ///     }
@@ -73,8 +69,7 @@ impl<'a> Session<'a> {
     /// }
     ///
     /// #[no_mangle]
-    /// pub extern "C" fn MyDeferredCustomAction(h: MSIHANDLE) -> u32 {
-    ///     let session = Session::from(h);
+    /// pub extern "C" fn MyDeferredCustomAction(session: Session) -> u32 {
     ///     let data = session.property("CustomActionData");
     ///     let record = Record::from(data);
     ///     session.message(MessageType::Info, &record);
@@ -93,7 +88,7 @@ impl<'a> Session<'a> {
 
     /// Processes a [`Record`] within the [`Session`].
     pub fn message(&self, kind: MessageType, record: &Record) -> i32 {
-        unsafe { ffi::MsiProcessMessage(self.h, kind, **record) }
+        unsafe { ffi::MsiProcessMessage(self.h, kind, *record.h) }
     }
 
     /// Returns a boolean indicating whether the specific property passed into the function is currently set (true) or not set (false).
@@ -106,8 +101,7 @@ impl<'a> Session<'a> {
     /// use msica::*;
     ///
     /// #[no_mangle]
-    /// pub extern "C" fn MyCustomAction(h: MSIHANDLE) -> u32 {
-    ///     let session = Session::from(h);
+    /// pub extern "C" fn MyCustomAction(session: Session) -> u32 {
     ///     if !session.mode(RunMode::Scheduled) {
     ///         session.do_deferred_action("MyCustomAction", "Hello, world!");
     ///     } else {
@@ -170,23 +164,6 @@ impl<'a> Session<'a> {
                 name.as_ptr() as ffi::LPCSTR,
                 value.as_ptr() as ffi::LPCSTR,
             );
-        }
-    }
-}
-
-impl<'a> Deref for Session<'a> {
-    type Target = MSIHANDLE;
-
-    fn deref(&self) -> &Self::Target {
-        &self.h
-    }
-}
-
-impl<'a> From<MSIHANDLE> for Session<'a> {
-    fn from(h: MSIHANDLE) -> Self {
-        Session {
-            h,
-            _phantom: PhantomData,
         }
     }
 }

@@ -21,7 +21,7 @@
     <IntermediateOutputPath>..\target\i686-pc-windows-msvc\obj\$(Configuration)\</IntermediateOutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="product.wxs" />
+    <Compile Include="example.wxs" />
     <Compile Include="deferred\deferred.wxs" />
   </ItemGroup>
   <ItemGroup>

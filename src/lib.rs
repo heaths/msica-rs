@@ -25,8 +25,6 @@ pub use record::{Field, Record};
 pub use session::Session;
 pub use view::View;
 
-use std::{fmt::Debug, marker::PhantomData, ops::Deref};
-
 /// Message types that can be processed by a custom action.
 #[repr(u32)]
 pub enum MessageType {
@@ -128,105 +126,11 @@ pub enum RunMode {
 ///     println!("last error: {}", error.format_text());
 /// }
 /// ```
-pub fn last_error_record<'a>() -> Option<Record<'a>> {
+pub fn last_error_record<'a>() -> Option<Record> {
     unsafe {
         match ffi::MsiGetLastErrorRecord() {
-            h if !h.is_null() => Some(h.into()),
+            h if !h.is_null() => Some(Record::from_handle(h)),
             _ => None,
         }
-    }
-}
-
-/// A Windows Installer handle. This handle is not automatically closed.
-#[derive(Clone, Copy, PartialEq)]
-#[repr(transparent)]
-pub struct MSIHANDLE(u32);
-
-impl MSIHANDLE {
-    fn null() -> MSIHANDLE {
-        MSIHANDLE(0)
-    }
-
-    fn to_owned<'a>(&self) -> PMSIHANDLE<'a> {
-        PMSIHANDLE {
-            h: *self,
-            _owned: true,
-            _phantom: PhantomData,
-        }
-    }
-
-    fn is_null(&self) -> bool {
-        self.0 == 0
-    }
-}
-
-impl From<u32> for MSIHANDLE {
-    fn from(h: u32) -> Self {
-        MSIHANDLE(h)
-    }
-}
-
-impl Debug for MSIHANDLE {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "MSIHANDLE ({})", self.0)
-    }
-}
-
-impl Deref for MSIHANDLE {
-    type Target = u32;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-/// A Windows Installer handle. This handle is automatically closed when dropped.
-struct PMSIHANDLE<'a> {
-    h: MSIHANDLE,
-    _owned: bool,
-    _phantom: PhantomData<&'a ()>,
-}
-
-impl<'a> Clone for PMSIHANDLE<'a> {
-    fn clone(&self) -> Self {
-        PMSIHANDLE {
-            h: self.h,
-            _owned: false,
-            _phantom: PhantomData,
-        }
-    }
-}
-
-impl<'a> Debug for PMSIHANDLE<'a> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "MSIHANDLE ({})", *self.h)
-    }
-}
-
-impl<'a> Drop for PMSIHANDLE<'a> {
-    fn drop(&mut self) {
-        unsafe {
-            if self._owned {
-                ffi::MsiCloseHandle(**self);
-            }
-        }
-    }
-}
-
-impl<'a> Deref for PMSIHANDLE<'a> {
-    type Target = MSIHANDLE;
-
-    fn deref(&self) -> &Self::Target {
-        &self.h
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn is_null() {
-        assert!(MSIHANDLE::null().is_null());
     }
 }
