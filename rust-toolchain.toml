@@ -2,4 +2,5 @@
 # Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 [toolchain]
+channel = "nightly"
 targets = ["x86_64-pc-windows-msvc"]

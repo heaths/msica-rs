@@ -1,8 +1,8 @@
 // Copyright 2022 Heath Stewart.
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
-use super::ffi;
-use super::{Record, View};
+use crate::ffi;
+use crate::{Record, View};
 use std::ffi::CString;
 
 /// The database for the current install session.

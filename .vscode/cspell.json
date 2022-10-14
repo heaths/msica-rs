@@ -2,6 +2,7 @@
   "version": "0.2",
   "language": "en",
   "words": [
+    "BUGBUG",
     "cdylib",
     "INSTALLMESSAGE",
     "LANGID",
@@ -11,11 +12,13 @@
     "msica",
     "msiexec",
     "MSIHANDLE",
+    "msvc",
     "PMSIHANDLE",
     "pwsh",
     "repr",
     "rustfmt",
     "rustup",
+    "thiserror",
     "USEREXIT",
     "wixproj"
   ],

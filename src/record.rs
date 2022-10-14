@@ -1,7 +1,8 @@
 // Copyright 2022 Heath Stewart.
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
-use super::ffi;
+use crate::ffi;
+use crate::{Error, Result};
 use std::{ffi::CString, fmt::Display};
 
 /// A field in a [`Record`].
@@ -92,35 +93,40 @@ impl Record {
     ///     Some("this is [1] [2]{ without [3]}"),
     ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned()), Field::Null],
     /// );
-    /// assert_eq!(record.format_text(), "this is 1 example");
+    /// assert_eq!(record.format_text().unwrap(), "this is 1 example");
     /// ```
-    pub fn format_text(&self) -> String {
+    pub fn format_text(&self) -> Result<String> {
         unsafe {
             let mut value_len = 0u32;
             let value = CString::default();
 
-            if ffi::MsiFormatRecord(
+            let mut ret = ffi::MsiFormatRecord(
                 ffi::MSIHANDLE::null(),
                 *self.h,
                 value.as_ptr() as ffi::LPSTR,
                 &mut value_len as *mut u32,
-            ) == ffi::ERROR_MORE_DATA
-            {
-                let mut value_len = value_len + 1u32;
-                let mut value: Vec<u8> = vec![0; value_len as usize];
-
-                ffi::MsiFormatRecord(
-                    ffi::MSIHANDLE::null(),
-                    *self.h,
-                    value.as_mut_ptr() as ffi::LPSTR,
-                    &mut value_len as *mut u32,
-                );
-
-                value.truncate(value_len as usize);
-                return String::from_utf8(value).unwrap();
+            );
+            if ret != ffi::ERROR_MORE_DATA {
+                return Err(Error::ErrorCode(ret));
             }
 
-            String::default()
+            let mut value_len = value_len + 1u32;
+            let mut value: Vec<u8> = vec![0; value_len as usize];
+
+            ret = ffi::MsiFormatRecord(
+                ffi::MSIHANDLE::null(),
+                *self.h,
+                value.as_mut_ptr() as ffi::LPSTR,
+                &mut value_len as *mut u32,
+            );
+            if ret != ffi::ERROR_SUCCESS {
+                return Err(Error::ErrorCode(ret));
+            }
+
+            value.truncate(value_len as usize);
+            let text = String::from_utf8(value)?;
+
+            Ok(text)
         }
     }
 
@@ -283,7 +289,9 @@ where
 
 impl Display for Record {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = self.format_text();
+        let s = self
+            .format_text()
+            .unwrap_or("cannot format record".to_owned());
         write!(f, "{}", s)
     }
 }

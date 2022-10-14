@@ -1,8 +1,8 @@
 // Copyright 2022 Heath Stewart.
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
-use super::ffi;
-use super::{Database, MessageType, Record, RunMode};
+use crate::ffi;
+use crate::{Database, MessageType, Record};
 use std::ffi::CString;
 
 /// A Windows Installer session passed as an [`MSIHANDLE`] to custom actions.
@@ -99,6 +99,7 @@ impl Session {
     ///
     /// ```no_run
     /// use msica::*;
+    /// const ERROR_SUCCESS: u32 = 0;
     ///
     /// #[no_mangle]
     /// pub extern "C" fn MyCustomAction(session: Session) -> u32 {
@@ -166,4 +167,41 @@ impl Session {
             );
         }
     }
+}
+
+/// Run modes passed to `Session::mode`.
+#[repr(u32)]
+pub enum RunMode {
+    /// Administrative mode install, else product install.
+    Admin = 0,
+    /// Advertise mode of install.
+    Advertise = 1,
+    ///Maintenance mode database loaded.
+    Maintenance = 2,
+    /// Rollback is enabled.
+    RollbackEnabled = 3,
+    /// Log file is active.
+    LogEnabled = 4,
+    /// Executing or spooling operations.
+    Operations = 5,
+    /// Reboot is needed.
+    RebootAtEnd = 6,
+    /// Reboot is needed to continue installation
+    RebootNow = 7,
+    /// Installing files from cabinets and files using Media table.
+    Cabinet = 8,
+    /// Source files use only short file names.
+    SourceShortNames = 9,
+    /// Target files are to use only short file names.
+    TargetShortNames = 10,
+    /// Operating system is Windows 98/95.
+    Windows9x = 12,
+    /// Operating system supports advertising of products.
+    ZawEnabled = 13,
+    /// Deferred custom action called from install script execution.
+    Scheduled = 16,
+    /// Deferred custom action called from rollback execution script.
+    Rollback = 17,
+    /// Deferred custom action called from commit execution script.
+    Commit = 18,
 }
