@@ -2,7 +2,7 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 use crate::ffi;
-use crate::{Database, MessageType, Record};
+use crate::{Database, Error, MessageType, Record, Result};
 use std::ffi::CString;
 
 /// A Windows Installer session passed as an [`MSIHANDLE`] to custom actions.
@@ -11,16 +11,15 @@ use std::ffi::CString;
 ///
 /// ```no_run
 /// use msica::*;
-/// const ERROR_SUCCESS: u32 = 0;
 ///
 /// #[no_mangle]
-/// pub extern "C" fn MyCustomAction(session: Session) -> u32 {
+/// pub extern "C" fn MyCustomAction(session: Session) -> CustomActionResult {
 ///     let record = Record::with_fields(
 ///         Some("this is [1] [2]"),
 ///         vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
-///     );
+///     )?;
 ///     session.message(MessageType::User, &record);
-///     ERROR_SUCCESS
+///     CustomActionResult::Succeed
 /// }
 /// ```
 #[repr(transparent)]
@@ -70,7 +69,7 @@ impl Session {
     ///
     /// #[no_mangle]
     /// pub extern "C" fn MyDeferredCustomAction(session: Session) -> u32 {
-    ///     let data = session.property("CustomActionData");
+    ///     let data = session.property("CustomActionData").expect("failed to get CustomActionData");
     ///     let record = Record::from(data);
     ///     session.message(MessageType::Info, &record);
     ///     ERROR_SUCCESS
@@ -99,18 +98,17 @@ impl Session {
     ///
     /// ```no_run
     /// use msica::*;
-    /// const ERROR_SUCCESS: u32 = 0;
     ///
     /// #[no_mangle]
-    /// pub extern "C" fn MyCustomAction(session: Session) -> u32 {
+    /// pub extern "C" fn MyCustomAction(session: Session) -> CustomActionResult {
     ///     if !session.mode(RunMode::Scheduled) {
     ///         session.do_deferred_action("MyCustomAction", "Hello, world!");
     ///     } else {
-    ///         let data = session.property("CustomActionData");
-    ///         let record = Record::with_fields(Some(data.as_str()), vec![]);
+    ///         let data = session.property("CustomActionData")?;
+    ///         let record = Record::with_fields(Some(data.as_str()), vec![])?;
     ///         session.message(MessageType::User, &record);
     ///     }
-    ///     ERROR_SUCCESS
+    ///     CustomActionResult::Succeed
     /// }
     /// ```
     pub fn mode(&self, mode: RunMode) -> bool {
@@ -118,36 +116,41 @@ impl Session {
     }
 
     /// Gets the value of the named property, or an empty string if undefined.
-    pub fn property(&self, name: &str) -> String {
+    pub fn property(&self, name: &str) -> Result<String> {
         unsafe {
             // TODO: Return result containing NulError if returned.
-            let name = CString::new(name).unwrap();
+            let name = CString::new(name)?;
 
             let mut value_len = 0u32;
             let value = CString::default();
 
-            if ffi::MsiGetProperty(
+            let mut ret = ffi::MsiGetProperty(
                 self.h,
                 name.as_ptr(),
                 value.as_ptr() as ffi::LPSTR,
                 &mut value_len as *mut u32,
-            ) == ffi::ERROR_MORE_DATA
-            {
-                let mut value_len = value_len + 1u32;
-                let mut value: Vec<u8> = vec![0; value_len as usize];
-
-                ffi::MsiGetProperty(
-                    self.h,
-                    name.as_ptr(),
-                    value.as_mut_ptr() as ffi::LPSTR,
-                    &mut value_len as *mut u32,
-                );
-
-                value.truncate(value_len as usize);
-                return String::from_utf8(value).unwrap();
+            );
+            if ret != ffi::ERROR_MORE_DATA {
+                return Err(Error::from_error_code(ret));
             }
 
-            String::default()
+            let mut value_len = value_len + 1u32;
+            let mut value: Vec<u8> = vec![0; value_len as usize];
+
+            ret = ffi::MsiGetProperty(
+                self.h,
+                name.as_ptr(),
+                value.as_mut_ptr() as ffi::LPSTR,
+                &mut value_len as *mut u32,
+            );
+            if ret != ffi::ERROR_SUCCESS {
+                return Err(Error::from_error_code(ret));
+            }
+
+            value.truncate(value_len as usize);
+            let text = String::from_utf8(value)?;
+
+            Ok(text)
         }
     }
 

@@ -19,7 +19,8 @@ pub extern "C" fn DeferredExampleCustomAction(session: Session) -> u32 {
                 Field::IntegerData(100),
                 Field::StringData("last".to_string()),
             ],
-        ),
+        )
+        .unwrap(),
     );
 
     // Schedule custom actions for each row.
@@ -28,7 +29,7 @@ pub extern "C" fn DeferredExampleCustomAction(session: Session) -> u32 {
         let data = format!(
             "{}\t{}",
             record.integer_data(1).unwrap(),
-            record.string_data(2)
+            record.string_data(2).unwrap(),
         );
         session.do_deferred_action("DeferredExampleCustomActionDeferred", &data);
     }
@@ -39,7 +40,7 @@ pub extern "C" fn DeferredExampleCustomAction(session: Session) -> u32 {
 pub extern "C" fn DeferredExampleCustomActionDeferred(session: Session) -> u32 {
     // Process the custom action data passed by the immediate custom action.
     // This data is always made available in a property named "CustomActionData".
-    let data = session.property("CustomActionData");
+    let data = session.property("CustomActionData").unwrap();
     let fields: Vec<&str> = data.split('\t').collect();
     let record = Record::with_fields(
         Some("Running the [2] ([1]) deferred custom action"),
@@ -47,7 +48,8 @@ pub extern "C" fn DeferredExampleCustomActionDeferred(session: Session) -> u32 {
             Field::StringData(fields[0].to_string()),
             Field::StringData(fields[1].to_string()),
         ],
-    );
+    )
+    .unwrap();
     session.message(MessageType::Info, &record);
     ERROR_SUCCESS
 }

@@ -2,8 +2,9 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #![allow(dead_code)]
-#![doc = include_str!("../README.md")]
+#![cfg_attr(doc, feature(nightly))]
 #![cfg_attr(feature = "nightly", feature(try_trait_v2))]
+#![doc = include_str!("../README.md")]
 
 // Fail fast on non-Windows platforms.
 #[cfg(not(target_os = "windows"))]

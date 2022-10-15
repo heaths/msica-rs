@@ -16,17 +16,14 @@ You can define custom actions in Rust using its [foreign function interface][ffi
 ```rust
 use msica::*;
 
-const ERROR_SUCCESS: u32 = 0;
-
 #[no_mangle]
-pub extern "C" fn MyCustomAction(session: Session) -> u32 {
+pub extern "C" fn MyCustomAction(session: Session) -> CustomActionResult {
     let record = Record::with_fields(
         Some("this is [1] [2]"),
         vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
-    );
+    )?;
     session.message(MessageType::User, &record);
-
-    ERROR_SUCCESS
+    CustomActionResult::Succeed
 }
 ```
 

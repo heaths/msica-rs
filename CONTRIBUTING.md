@@ -15,6 +15,14 @@ The following software is required:
 
   If Rust is already installed, please run `rustup update` to make sure you're up to date.
 
+* Nightly toolchain
+
+  You need to install the nightly toolchain to build and test all examples.
+
+  ```bash
+  rustup toolchain install nightly
+  ```
+
 The following software is recommended:
 
 * [Visual Studio Code](https://code.visualstudio.com/)
@@ -31,7 +39,7 @@ The following software is recommended:
 To build and test, simply run:
 
 ```powershell
-cargo test --all
+cargo test --all --features nightly
 ```
 
 By default, this will build x64 custom action DLLs from under _examples_.

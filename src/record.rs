@@ -46,28 +46,29 @@ impl Record {
     ///
     /// let record = Record::with_fields(
     ///     Some("this is [1] [2]"),
-    ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned())]);
+    ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
+    /// ).expect("failed to create record");
     /// assert_eq!(record.field_count(), 2);
     /// ```
-    pub fn with_fields(text: Option<&str>, fields: Vec<Field>) -> Self {
+    pub fn with_fields(text: Option<&str>, fields: Vec<Field>) -> Result<Self> {
         unsafe {
             let h = ffi::MsiCreateRecord(fields.len() as u32);
             let record = Record { h: h.to_owned() };
 
             if let Some(text) = text {
-                record.set_string_data(0, Some(text));
+                record.set_string_data(0, Some(text))?;
             }
 
             for (i, field) in fields.iter().enumerate() {
                 let i: u32 = i.try_into().unwrap();
                 match field {
-                    Field::StringData(data) => record.set_string_data(i + 1, Some(data)),
-                    Field::IntegerData(data) => record.set_integer_data(i + 1, *data),
+                    Field::StringData(data) => record.set_string_data(i + 1, Some(data))?,
+                    Field::IntegerData(data) => record.set_integer_data(i + 1, *data)?,
                     Field::Null => {}
                 }
             }
 
-            record
+            Ok(record)
         }
     }
 
@@ -92,8 +93,8 @@ impl Record {
     /// let record = Record::with_fields(
     ///     Some("this is [1] [2]{ without [3]}"),
     ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned()), Field::Null],
-    /// );
-    /// assert_eq!(record.format_text().unwrap(), "this is 1 example");
+    /// ).expect("failed to create record");
+    /// assert_eq!(record.format_text().expect("failed to format record"), "this is 1 example");
     /// ```
     pub fn format_text(&self) -> Result<String> {
         unsafe {
@@ -107,7 +108,7 @@ impl Record {
                 &mut value_len as *mut u32,
             );
             if ret != ffi::ERROR_MORE_DATA {
-                return Err(Error::ErrorCode(ret));
+                return Err(Error::from_error_code(ret));
             }
 
             let mut value_len = value_len + 1u32;
@@ -120,7 +121,7 @@ impl Record {
                 &mut value_len as *mut u32,
             );
             if ret != ffi::ERROR_SUCCESS {
-                return Err(Error::ErrorCode(ret));
+                return Err(Error::from_error_code(ret));
             }
 
             value.truncate(value_len as usize);
@@ -142,36 +143,41 @@ impl Record {
     /// let record = Record::with_fields(
     ///     Some("this is [1] [2]"),
     ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
-    /// );
-    /// assert_eq!(record.string_data(2), "example");
+    /// ).expect("failed to create record");
+    /// assert_eq!(record.string_data(2).expect("failed to get field data"), "example");
     /// ```
-    pub fn string_data(&self, field: u32) -> String {
+    pub fn string_data(&self, field: u32) -> Result<String> {
         unsafe {
             let mut value_len = 0u32;
             let value = CString::default();
 
-            if ffi::MsiRecordGetString(
+            let mut ret = ffi::MsiRecordGetString(
                 *self.h,
                 field,
                 value.as_ptr() as ffi::LPSTR,
                 &mut value_len as *mut u32,
-            ) == ffi::ERROR_MORE_DATA
-            {
-                let mut value_len = value_len + 1u32;
-                let mut value: Vec<u8> = vec![0; value_len as usize];
-
-                ffi::MsiRecordGetString(
-                    *self.h,
-                    field,
-                    value.as_mut_ptr() as ffi::LPSTR,
-                    &mut value_len as *mut u32,
-                );
-
-                value.truncate(value_len as usize);
-                return String::from_utf8(value).unwrap();
+            );
+            if ret != ffi::ERROR_MORE_DATA {
+                return Err(Error::from_error_code(ret));
             }
 
-            String::default()
+            let mut value_len = value_len + 1u32;
+            let mut value: Vec<u8> = vec![0; value_len as usize];
+
+            ret = ffi::MsiRecordGetString(
+                *self.h,
+                field,
+                value.as_mut_ptr() as ffi::LPSTR,
+                &mut value_len as *mut u32,
+            );
+            if ret != ffi::ERROR_SUCCESS {
+                return Err(Error::from_error_code(ret));
+            }
+
+            value.truncate(value_len as usize);
+            let text = String::from_utf8(value)?;
+
+            Ok(text)
         }
     }
 
@@ -185,17 +191,23 @@ impl Record {
     /// use msica::{Field, Record};
     ///
     /// let mut record = Record::new(1);
-    /// record.set_string_data(1, Some("example"));
-    /// assert_eq!(record.string_data(1), "example");
+    /// record.set_string_data(1, Some("example")).expect("failed to set field data");
+    /// assert_eq!(record.string_data(1).expect("failed to get field data"), "example");
     /// ```
-    pub fn set_string_data(&self, field: u32, value: Option<&str>) {
+    pub fn set_string_data(&self, field: u32, value: Option<&str>) -> Result<()> {
         unsafe {
             // TODO: Return result containing NulError if returned.
             let value = match value {
-                Some(s) => CString::new(s).unwrap(),
+                Some(s) => CString::new(s)?,
                 None => CString::default(),
             };
-            ffi::MsiRecordSetString(*self.h, field, value.as_ptr());
+
+            let ret = ffi::MsiRecordSetString(*self.h, field, value.as_ptr());
+            if ret != ffi::ERROR_SUCCESS {
+                return Err(Error::from_error_code(ret));
+            }
+
+            Ok(())
         }
     }
 
@@ -211,7 +223,7 @@ impl Record {
     /// let record = Record::with_fields(
     ///     Some("this is [1] [2]"),
     ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
-    /// );
+    /// ).expect("failed to create record");
     /// assert_eq!(record.integer_data(1), Some(1));
     /// ```
     pub fn integer_data(&self, field: u32) -> Option<i32> {
@@ -233,12 +245,17 @@ impl Record {
     /// use msica::{Field, Record};
     ///
     /// let mut record = Record::new(1);
-    /// record.set_integer_data(1, 42);
+    /// record.set_integer_data(1, 42).expect("failed to set field data");
     /// assert_eq!(record.integer_data(1), Some(42));
     /// ```
-    pub fn set_integer_data(&self, field: u32, value: i32) {
+    pub fn set_integer_data(&self, field: u32, value: i32) -> Result<()> {
         unsafe {
-            ffi::MsiRecordSetInteger(*self.h, field, value);
+            let ret = ffi::MsiRecordSetInteger(*self.h, field, value);
+            if ret != ffi::ERROR_SUCCESS {
+                return Err(Error::from_error_code(ret));
+            }
+
+            Ok(())
         }
     }
 
@@ -299,32 +316,37 @@ impl Display for Record {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Result;
 
     #[test]
-    fn from_str() {
+    fn from_str() -> Result<()> {
         let record = Record::from("test");
-        assert_eq!(record.string_data(0), "test");
+        assert_eq!(record.string_data(0)?, "test");
+        Ok(())
     }
 
     #[test]
-    fn from_string() {
+    fn from_string() -> Result<()> {
         let record = Record::from("test".to_owned());
-        assert_eq!(record.string_data(0), "test");
+        assert_eq!(record.string_data(0)?, "test");
+        Ok(())
     }
 
     #[test]
-    fn set_string_data_null() {
-        let record = Record::with_fields(None, vec![Field::StringData("test".to_owned())]);
-        assert_eq!(record.string_data(1), "test");
+    fn set_string_data_null() -> Result<()> {
+        let record = Record::with_fields(None, vec![Field::StringData("test".to_owned())])?;
+        assert_eq!(record.string_data(1)?, "test");
 
-        record.set_string_data(1, None);
+        record.set_string_data(1, None)?;
         assert!(record.is_null(1));
-        assert_eq!(record.string_data(1), "");
+        assert_eq!(record.string_data(1)?, "");
+        Ok(())
     }
 
     #[test]
-    fn integer_data_from_string() {
-        let record = Record::with_fields(None, vec![Field::StringData("test".to_owned())]);
+    fn integer_data_from_string() -> Result<()> {
+        let record = Record::with_fields(None, vec![Field::StringData("test".to_owned())])?;
         assert_eq!(record.integer_data(1), None);
+        Ok(())
     }
 }

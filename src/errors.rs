@@ -1,32 +1,130 @@
 // Copyright 2022 Heath Stewart.
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
-use thiserror::Error;
-
 use crate::Record;
-
-/// Errors returned by this crate.
-#[derive(Error, Debug)]
-pub enum Error {
-    /// A Windows error code returned from installer functions.
-    #[error("error code {0}")]
-    ErrorCode(u32),
-
-    /// An error [`Record`] containing more information.
-    #[error("installer error: {0}")]
-    ErrorRecord(Record),
-
-    /// A possible error value when converting a `String` from a UTF-8 byte vector.
-    #[error(transparent)]
-    FromUtf8Error(#[from] std::string::FromUtf8Error),
-}
+use std::fmt::Display;
+use std::num::NonZeroU32;
 
 /// Results returned by this crate.
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum ErrorKind {
+    /// A Windows error code.
+    ErrorCode(NonZeroU32),
+
+    /// A [`Record`] containing Windows Installer error information.
+    ErrorRecord,
+
+    /// An error converting data.
+    DataConversion,
+
+    /// Any other type of error.
+    Other,
+}
+
+impl Display for ErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorKind::ErrorCode(err) => write!(f, "ErrorCode({})", err),
+            ErrorKind::ErrorRecord => write!(f, "ErrorRecord"),
+            ErrorKind::DataConversion => write!(f, "DataConversion"),
+            ErrorKind::Other => write!(f, "Other"),
+        }
+    }
+}
+
+/// Errors returned by this crate.
+#[derive(Debug)]
+pub struct Error {
+    context: Context,
+}
+
+impl Error {
+    pub fn new<E>(kind: ErrorKind, error: E) -> Self
+    where
+        E: Into<Box<dyn std::error::Error + Send + Sync>>,
+    {
+        Self {
+            context: Context::Custom(Custom {
+                kind,
+                error: error.into(),
+            }),
+        }
+    }
+
+    pub fn from_error_code(code: u32) -> Self {
+        Self {
+            context: Context::Simple(ErrorKind::ErrorCode(
+                NonZeroU32::new(code).expect("expected non-zero error code"),
+            )),
+        }
+    }
+
+    pub fn from_last_error_record() -> Option<Self> {
+        crate::last_error_record().map(|record| Self {
+            context: Context::Record(record),
+        })
+    }
+
+    pub fn kind(&self) -> &ErrorKind {
+        match &self.context {
+            Context::Simple(kind) => kind,
+            Context::Record(..) => &ErrorKind::ErrorRecord,
+            Context::Custom(Custom { kind, .. }) => kind,
+        }
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.context {
+            Context::Simple(kind) => write!(f, "{}", kind),
+            Context::Record(record) => write!(f, "{}", record),
+            Context::Custom(Custom { error, .. }) => write!(f, "{}", error),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match &self.context {
+            Context::Custom(Custom { error, .. }) => error.source(),
+            _ => None,
+        }
+    }
+}
+
+impl From<std::ffi::NulError> for Error {
+    fn from(error: std::ffi::NulError) -> Self {
+        Error::new(ErrorKind::DataConversion, error)
+    }
+}
+
+impl From<std::string::FromUtf8Error> for Error {
+    fn from(error: std::string::FromUtf8Error) -> Self {
+        Error::new(ErrorKind::DataConversion, error)
+    }
+}
+
+#[derive(Debug)]
+enum Context {
+    Simple(ErrorKind),
+    Record(Record),
+    Custom(Custom),
+}
+
+#[derive(Debug)]
+struct Custom {
+    kind: ErrorKind,
+    error: Box<dyn std::error::Error + Send + Sync>,
+}
+
 #[cfg(feature = "nightly")]
 pub mod experimental {
+    use super::{Error, ErrorKind};
     use crate::ffi;
+    use std::convert::Infallible;
     use std::fmt::Display;
     use std::num::NonZeroU32;
     use std::ops::{ControlFlow, FromResidual, Try};
@@ -39,14 +137,13 @@ pub mod experimental {
     ///
     /// ```no_run
     /// use std::ffi::OsString;
-    /// use msica::{Session, experimental::CustomActionResult};
+    /// use msica::{Session, CustomActionResult};
     ///
     /// #[no_mangle]
-    /// pub extern "C" fn MyCustomAction(h: MSIHANDLE) -> CustomActionResult {
-    ///     let session = Session::from(h);
-    ///     let s = OsString::from("hopefully some properly UTF8-encoded string")?;
+    /// pub extern "C" fn MyCustomAction(session: Session) -> CustomActionResult {
+    ///     let productName = session.property("ProductName")?;
     ///
-    ///     // Do something with `s`.
+    ///     // Do something with `productName`.
     ///
     ///     CustomActionResult::Succeed
     /// }
@@ -81,6 +178,18 @@ pub mod experimental {
             };
 
             write!(f, "{}", error)
+        }
+    }
+
+    impl From<u32> for CustomActionResult {
+        fn from(code: u32) -> Self {
+            match code {
+                ffi::ERROR_SUCCESS => CustomActionResult::Succeed,
+                ffi::ERROR_NO_MORE_ITEMS => CustomActionResult::Skip,
+                ffi::ERROR_INSTALL_USEREXIT => CustomActionResult::Cancel,
+                ffi::ERROR_FUNCTION_NOT_CALLED => CustomActionResult::NotExecuted,
+                _ => CustomActionResult::Fail,
+            }
         }
     }
 
@@ -124,6 +233,16 @@ pub mod experimental {
                 ffi::ERROR_INSTALL_FAILURE => CustomActionResult::Fail,
                 ffi::ERROR_FUNCTION_NOT_CALLED => CustomActionResult::NotExecuted,
                 code => panic!("unexpected result code {}", code),
+            }
+        }
+    }
+
+    impl FromResidual<Result<Infallible, Error>> for CustomActionResult {
+        fn from_residual(residual: Result<Infallible, Error>) -> Self {
+            let error = residual.unwrap_err();
+            match error.kind() {
+                ErrorKind::ErrorCode(code) => CustomActionResult::from(code.get()),
+                _ => CustomActionResult::Fail,
             }
         }
     }
