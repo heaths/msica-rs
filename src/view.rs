@@ -89,8 +89,8 @@ impl Iterator for View {
 
     fn next(&mut self) -> Option<Self::Item> {
         unsafe {
-            let mut h = ffi::MSIHANDLE::null();
-            ffi::MsiViewFetch(*self.h, &mut h);
+            let h = ffi::MSIHANDLE::null();
+            ffi::MsiViewFetch(*self.h, &h);
 
             if h.is_null() {
                 return None;

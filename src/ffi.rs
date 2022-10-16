@@ -1,8 +1,9 @@
 // Copyright 2022 Heath Stewart.
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
-use crate::ModifyMode;
+#![allow(clippy::upper_case_acronyms)]
 
+use crate::ModifyMode;
 use crate::{MessageType, RunMode};
 use std::{
     fmt::Display,
@@ -103,7 +104,7 @@ extern "C" {
     pub fn MsiViewModify(hView: MSIHANDLE, eModifyMode: ModifyMode, hRecord: MSIHANDLE) -> u32;
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 #[repr(transparent)]
 pub struct BOOL(i32);
 
@@ -111,12 +112,6 @@ impl BOOL {
     #[inline]
     pub fn as_bool(self) -> bool {
         self.0 != 0
-    }
-}
-
-impl Default for BOOL {
-    fn default() -> Self {
-        BOOL(0)
     }
 }
 
@@ -156,7 +151,7 @@ impl PartialEq<bool> for BOOL {
 }
 
 /// A Windows Installer handle. This handle is not automatically closed.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(transparent)]
 pub struct MSIHANDLE(u32);
 
@@ -165,8 +160,8 @@ impl MSIHANDLE {
         MSIHANDLE(0)
     }
 
-    pub fn to_owned(&self) -> PMSIHANDLE {
-        PMSIHANDLE { h: *self }
+    pub fn to_owned(self) -> PMSIHANDLE {
+        PMSIHANDLE { h: self }
     }
 
     pub fn is_null(&self) -> bool {
@@ -195,7 +190,7 @@ impl Deref for MSIHANDLE {
 }
 
 /// A Windows Installer handle. This handle is automatically closed when dropped.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct PMSIHANDLE {
     h: MSIHANDLE,
 }

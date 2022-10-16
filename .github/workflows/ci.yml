@@ -35,7 +35,7 @@ jobs:
         with:
           profile: minimal
           # TODO: Remove duplicate configuration when https://github.com/actions-rs/toolchain/issues/126 is resolved.
-          components: cargo, rust-docs, rustc, rustfmt
+          components: cargo, clippy, rustfmt
           override: true
           toolchain: nightly
           target: x86_64-pc-windows-msvc
@@ -49,13 +49,18 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          # Need to pass --features nightly because  of https://github.com/rust-lang/cargo/issues/2911.
-          args: --all --features nightly
+          # Need to pass `--all-features` because of https://github.com/rust-lang/cargo/issues/2911.
+          args: --all-features --workspace
+      - name: Lint
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-features --all-targets --no-deps --workspace
       - name: Build documentation
         uses: actions-rs/cargo@v1
         with:
           command: doc
-          args: --all-features
+          args: --all-features --no-deps --workspace
       - name: Set up MSBuild
         if: ${{ success() && (inputs.full || github.event_name != 'workflow_call') }}
         uses: microsoft/setup-msbuild@v1.1

@@ -37,7 +37,7 @@ pub use view::{ModifyMode, View};
 /// }
 /// # Ok::<(), msica::Error>(())
 /// ```
-pub fn last_error_record<'a>() -> Option<Record> {
+pub fn last_error_record() -> Option<Record> {
     unsafe {
         match ffi::MsiGetLastErrorRecord() {
             h if !h.is_null() => Some(Record::from_handle(h)),

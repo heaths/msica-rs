@@ -8,7 +8,7 @@ use std::num::{NonZeroU32, TryFromIntError};
 /// Results returned by this crate.
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ErrorKind {
     /// A Windows error code.
     ErrorCode(NonZeroU32),
@@ -68,7 +68,7 @@ impl Error {
     }
 
     pub(crate) fn from_last_error_record() -> Option<Self> {
-        crate::last_error_record().map(|record| Error::from_error_record(record))
+        crate::last_error_record().map(Error::from_error_record)
     }
 
     /// Gets the [`ErrorKind`] of this `Error`.
@@ -204,6 +204,7 @@ pub mod experimental {
         }
     }
 
+    #[allow(clippy::from_over_into)]
     impl Into<u32> for CustomActionResult {
         fn into(self) -> u32 {
             self as u32
