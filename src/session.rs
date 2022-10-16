@@ -5,21 +5,22 @@ use crate::ffi;
 use crate::{Database, Error, Record, Result};
 use std::ffi::CString;
 
-/// A Windows Installer session passed as an [`MSIHANDLE`] to custom actions.
+/// A Windows Installer session passed to custom actions.
 ///
 /// # Example
 ///
 /// ```no_run
 /// use msica::*;
+/// const ERROR_SUCCESS: u32 = 0;
 ///
 /// #[no_mangle]
-/// pub extern "C" fn MyCustomAction(session: Session) -> CustomActionResult {
+/// pub extern "C" fn MyCustomAction(session: Session) -> u32 {
 ///     let record = Record::with_fields(
 ///         Some("this is [1] [2]"),
 ///         vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
-///     )?;
+///     ).expect("failed to create record");
 ///     session.message(MessageType::User, &record);
-///     CustomActionResult::Succeed
+///     ERROR_SUCCESS
 /// }
 /// ```
 #[repr(transparent)]
@@ -103,17 +104,18 @@ impl Session {
     ///
     /// ```no_run
     /// use msica::*;
+    /// const ERROR_SUCCESS: u32 = 0;
     ///
     /// #[no_mangle]
-    /// pub extern "C" fn MyCustomAction(session: Session) -> CustomActionResult {
+    /// pub extern "C" fn MyCustomAction(session: Session) -> u32 {
     ///     if !session.mode(RunMode::Scheduled) {
     ///         session.do_deferred_action("MyCustomAction", "Hello, world!");
     ///     } else {
-    ///         let data = session.property("CustomActionData")?;
-    ///         let record = Record::with_fields(Some(data.as_str()), vec![])?;
+    ///         let data = session.property("CustomActionData").expect("failed to get CustomActionData");
+    ///         let record = Record::with_fields(Some(data.as_str()), vec![]).expect("failed to create record");
     ///         session.message(MessageType::User, &record);
     ///     }
-    ///     CustomActionResult::Succeed
+    ///     ERROR_SUCCESS
     /// }
     /// ```
     pub fn mode(&self, mode: RunMode) -> bool {

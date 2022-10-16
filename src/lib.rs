@@ -22,7 +22,7 @@ mod view;
 pub use database::Database;
 #[cfg(feature = "nightly")]
 pub use errors::experimental::CustomActionResult;
-pub use errors::{Error, Result};
+pub use errors::{Error, ErrorKind, Result};
 pub use record::{Field, Record};
 pub use session::{MessageType, RunMode, Session};
 pub use view::{ModifyMode, View};
@@ -32,11 +32,10 @@ pub use view::{ModifyMode, View};
 /// # Example
 ///
 /// ```
-/// use msica::*;
-///
-/// if let Some(error) = last_error_record() {
-///     println!("last error: {}", error.format_text().unwrap());
+/// if let Some(error) = msica::last_error_record() {
+///     println!("last error: {}", error.format_text()?);
 /// }
+/// # Ok::<(), msica::Error>(())
 /// ```
 pub fn last_error_record<'a>() -> Option<Record> {
     unsafe {

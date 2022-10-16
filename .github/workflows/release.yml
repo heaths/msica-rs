@@ -20,25 +20,15 @@ env:
   RUSTFLAGS: -Dwarnings
 
 jobs:
+  build:
+    uses: ./.github/workflows/ci.yml
+    with:
+      full: false
+
   publish:
     runs-on: windows-latest
+    needs: build
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Set up toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          components: rustfmt
-          override: true
-          profile: minimal
-          target: x86_64-pc-windows-msvc
-          toolchain: nightly
-      - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          # Need to pass --features nightly because  of https://github.com/rust-lang/cargo/issues/2911.
-          args: --all --features nightly
       - name: Release
         run: gh release create ${{ github.ref_name }} --generate-notes
         env:

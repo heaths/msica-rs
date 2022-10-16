@@ -165,7 +165,7 @@ pub mod experimental {
         /// Completed actions successfully.
         Succeed = ffi::ERROR_SUCCESS,
 
-        /// Skip remaining actions.Not an error.
+        /// Skip remaining actions. Not an error.
         Skip = ffi::ERROR_NO_MORE_ITEMS,
 
         /// User terminated prematurely.
