@@ -29,6 +29,12 @@ jobs:
     runs-on: windows-latest
     needs: build
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
       - name: Release
         run: gh release create ${{ github.ref_name }} --generate-notes
         env:

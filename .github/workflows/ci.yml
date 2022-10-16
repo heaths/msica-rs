@@ -29,7 +29,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -40,7 +40,7 @@ jobs:
           toolchain: nightly
           target: x86_64-pc-windows-msvc
       - name: Check formatting
-        if: ${{ inputs.full }}
+        if: ${{ success() && (inputs.full || github.event_name != 'workflow_call') }}
         uses: actions-rs/cargo@v1
         with:
           command: fmt
@@ -57,11 +57,11 @@ jobs:
           command: doc
           args: --all-features
       - name: Set up MSBuild
-        if: ${{ inputs.full }}
+        if: ${{ success() && (inputs.full || github.event_name != 'workflow_call') }}
         uses: microsoft/setup-msbuild@v1.1
       - name: Build example MSI
-        if: ${{ inputs.full }}
+        if: ${{ success() && (inputs.full || github.event_name != 'workflow_call') }}
         run: msbuild -t:build examples/example.wixproj
       - name: Install example MSI
-        if: ${{ inputs.full }}
+        if: ${{ success() && (inputs.full || github.event_name != 'workflow_call') }}
         run: start-process msiexec.exe -args '/i', "$PWD\\target\\debug\\example.msi", '/qn' -wait
