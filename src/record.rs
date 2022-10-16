@@ -60,7 +60,7 @@ impl Record {
             }
 
             for (i, field) in fields.iter().enumerate() {
-                let i: u32 = i.try_into().unwrap();
+                let i: u32 = i.try_into()?;
                 match field {
                     Field::StringData(data) => record.set_string_data(i + 1, Some(data))?,
                     Field::IntegerData(data) => record.set_integer_data(i + 1, *data)?,
@@ -288,18 +288,28 @@ impl Record {
     }
 }
 
-impl<T> From<T> for Record
-where
-    T: AsRef<str>,
-{
-    fn from(s: T) -> Self {
+impl TryFrom<&str> for Record {
+    type Error = crate::Error;
+    fn try_from(s: &str) -> std::result::Result<Self, Self::Error> {
         unsafe {
             let h = ffi::MsiCreateRecord(0u32);
-            // TODO: Return result containing NulError if returned.
-            let s = CString::new(s.as_ref()).unwrap();
+            let s = CString::new(s)?;
             ffi::MsiRecordSetString(h, 0, s.as_ptr());
 
-            Record { h: h.to_owned() }
+            Ok(Record { h: h.to_owned() })
+        }
+    }
+}
+
+impl TryFrom<String> for Record {
+    type Error = crate::Error;
+    fn try_from(s: String) -> std::result::Result<Self, Self::Error> {
+        unsafe {
+            let h = ffi::MsiCreateRecord(0u32);
+            let s = CString::new(s)?;
+            ffi::MsiRecordSetString(h, 0, s.as_ptr());
+
+            Ok(Record { h: h.to_owned() })
         }
     }
 }
@@ -319,15 +329,15 @@ mod tests {
     use crate::Result;
 
     #[test]
-    fn from_str() -> Result<()> {
-        let record = Record::from("test");
+    fn try_from_str() -> Result<()> {
+        let record = Record::try_from("test")?;
         assert_eq!(record.string_data(0)?, "test");
         Ok(())
     }
 
     #[test]
-    fn from_string() -> Result<()> {
-        let record = Record::from("test".to_owned());
+    fn try_from_string() -> Result<()> {
+        let record = Record::try_from("test".to_owned())?;
         assert_eq!(record.string_data(0)?, "test");
         Ok(())
     }

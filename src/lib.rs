@@ -2,7 +2,6 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #![allow(dead_code)]
-#![cfg_attr(doc, feature(nightly))]
 #![cfg_attr(feature = "nightly", feature(try_trait_v2))]
 #![doc = include_str!("../README.md")]
 
@@ -11,6 +10,7 @@
 compile_error!("supported on windows only");
 
 // See https://docs.microsoft.com/windows/win32/msi/automation-interface-reference
+// for inspiration for the shape of this API.
 
 mod database;
 mod errors;
@@ -24,19 +24,8 @@ pub use database::Database;
 pub use errors::experimental::CustomActionResult;
 pub use errors::{Error, Result};
 pub use record::{Field, Record};
-pub use session::{RunMode, Session};
+pub use session::{MessageType, RunMode, Session};
 pub use view::{ModifyMode, View};
-
-/// Message types that can be processed by a custom action.
-#[repr(u32)]
-pub enum MessageType {
-    Error = 0x0100_0000,
-    Warning = 0x0200_0000,
-    User = 0x0300_0000,
-    Info = 0x0400_0000,
-    Progress = 0x0a00_0000,
-    CommonData = 0x0b00_0000,
-}
 
 /// Gets the last Windows Installer error for the current process.
 ///

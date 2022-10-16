@@ -2,7 +2,7 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 use crate::ffi;
-use crate::Record;
+use crate::{Error, Record, Result};
 
 #[cfg(doc)]
 use crate::Database;
@@ -20,6 +20,8 @@ pub struct View {
 
 impl View {
     /// Releases the result set for an executed view.
+    ///
+    /// `close` must be called before `execute` can be called again unless all records have been fetched.
     pub fn close(&self) {
         unsafe {
             ffi::MsiViewClose(*self.h);
@@ -30,14 +32,23 @@ impl View {
     /// For more information, see [SQL syntax](https://docs.microsoft.com/windows/win32/msi/sql-syntax).
     ///
     /// The values of these parameters are passed in as the corresponding fields of a parameter record.
-    pub fn execute(&self, record: Option<Record>) {
+    ///
+    /// `close` must be called before `execute` can be called again unless all records have been fetched.
+    pub fn execute(&self, record: Option<Record>) -> Result<()> {
         unsafe {
             let h = match record {
                 Some(r) => *r.h,
                 None => ffi::MSIHANDLE::null(),
             };
 
-            ffi::MsiViewExecute(*self.h, h);
+            let ret = ffi::MsiViewExecute(*self.h, h);
+            if ret != ffi::ERROR_SUCCESS {
+                return Err(
+                    Error::from_last_error_record().unwrap_or_else(|| Error::from_error_code(ret))
+                );
+            }
+
+            Ok(())
         }
     }
 
@@ -49,9 +60,16 @@ impl View {
     ///
     /// Note that custom actions can only add, modify, or remove temporary rows, columns, or tables from a database.
     /// Custom actions cannot modify persistent data in a database, such as data that is a part of the database stored on disk.
-    pub fn modify(&self, mode: ModifyMode, record: &Record) {
+    pub fn modify(&self, mode: ModifyMode, record: &Record) -> Result<()> {
         unsafe {
-            ffi::MsiViewModify(*self.h, mode, *record.h);
+            let ret = ffi::MsiViewModify(*self.h, mode, *record.h);
+            if ret != ffi::ERROR_SUCCESS {
+                return Err(
+                    Error::from_last_error_record().unwrap_or_else(|| Error::from_error_code(ret))
+                );
+            }
+
+            Ok(())
         }
     }
 

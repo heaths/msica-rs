@@ -3,7 +3,7 @@
 
 use crate::Record;
 use std::fmt::Display;
-use std::num::NonZeroU32;
+use std::num::{NonZeroU32, TryFromIntError};
 
 /// Results returned by this crate.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -41,7 +41,7 @@ pub struct Error {
 }
 
 impl Error {
-    pub fn new<E>(kind: ErrorKind, error: E) -> Self
+    pub(crate) fn new<E>(kind: ErrorKind, error: E) -> Self
     where
         E: Into<Box<dyn std::error::Error + Send + Sync>>,
     {
@@ -53,7 +53,7 @@ impl Error {
         }
     }
 
-    pub fn from_error_code(code: u32) -> Self {
+    pub(crate) fn from_error_code(code: u32) -> Self {
         Self {
             context: Context::Simple(ErrorKind::ErrorCode(
                 NonZeroU32::new(code).expect("expected non-zero error code"),
@@ -61,12 +61,17 @@ impl Error {
         }
     }
 
-    pub fn from_last_error_record() -> Option<Self> {
-        crate::last_error_record().map(|record| Self {
+    pub(crate) fn from_error_record(record: Record) -> Self {
+        Self {
             context: Context::Record(record),
-        })
+        }
     }
 
+    pub(crate) fn from_last_error_record() -> Option<Self> {
+        crate::last_error_record().map(|record| Error::from_error_record(record))
+    }
+
+    /// Gets the [`ErrorKind`] of this `Error`.
     pub fn kind(&self) -> &ErrorKind {
         match &self.context {
             Context::Simple(kind) => kind,
@@ -92,6 +97,12 @@ impl std::error::Error for Error {
             Context::Custom(Custom { error, .. }) => error.source(),
             _ => None,
         }
+    }
+}
+
+impl From<TryFromIntError> for Error {
+    fn from(error: TryFromIntError) -> Self {
+        Error::new(ErrorKind::DataConversion, error)
     }
 }
 
@@ -232,7 +243,7 @@ pub mod experimental {
                 ffi::ERROR_INSTALL_USEREXIT => CustomActionResult::Cancel,
                 ffi::ERROR_INSTALL_FAILURE => CustomActionResult::Fail,
                 ffi::ERROR_FUNCTION_NOT_CALLED => CustomActionResult::NotExecuted,
-                code => panic!("unexpected result code {}", code),
+                code => panic!("unexpected error code {}", code),
             }
         }
     }
@@ -245,5 +256,60 @@ pub mod experimental {
                 _ => CustomActionResult::Fail,
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Field;
+    use std::ffi::CString;
+
+    #[test]
+    fn from_error_code() {
+        let error = Error::from_error_code(1603);
+        assert_eq!(
+            &ErrorKind::ErrorCode(NonZeroU32::new(1603).unwrap()),
+            error.kind()
+        );
+        assert_eq!("ErrorCode(1603)", error.to_string());
+    }
+
+    #[test]
+    fn from_record() {
+        let record = Record::with_fields(
+            Some("error [1]"),
+            vec![Field::StringData("text".to_owned())],
+        )
+        .expect("failed to create record");
+        let error = Error::from_error_record(record);
+        assert_eq!(&ErrorKind::ErrorRecord, error.kind());
+        assert_eq!("error text", error.to_string());
+    }
+
+    #[test]
+    // cspell:ignore tryfrominterror
+    fn from_tryfrominterror() {
+        let error: Error = u8::try_from(u32::MAX).unwrap_err().into();
+        assert_eq!(&ErrorKind::DataConversion, error.kind());
+        assert_ne!("DataConversion", error.to_string());
+    }
+
+    #[test]
+    // cspell:ignore nulerror
+    fn from_nulerror() {
+        let error: Error = CString::new("t\0est").unwrap_err().into();
+        assert_eq!(&ErrorKind::DataConversion, error.kind());
+        assert_ne!("DataConversion", error.to_string());
+    }
+
+    #[test]
+    // cspell:ignore fromutf8error
+    fn from_fromutf8error() {
+        let error: Error = String::from_utf8(vec![0, 159, 146, 150])
+            .unwrap_err()
+            .into();
+        assert_eq!(&ErrorKind::DataConversion, error.kind());
+        assert_ne!("DataConversion", error.to_string());
     }
 }

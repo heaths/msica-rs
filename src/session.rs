@@ -2,7 +2,7 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 use crate::ffi;
-use crate::{Database, Error, MessageType, Record, Result};
+use crate::{Database, Error, Record, Result};
 use std::ffi::CString;
 
 /// A Windows Installer session passed as an [`MSIHANDLE`] to custom actions.
@@ -41,13 +41,18 @@ impl Session {
     ///
     /// To schedule a deferred custom action with its `CustomActionData`,
     /// call `do_deferred_action`.
-    pub fn do_action(&self, action: Option<&str>) {
+    pub fn do_action(&self, action: Option<&str>) -> Result<()> {
         unsafe {
             let action = match action {
-                Some(s) => CString::new(s).unwrap(),
+                Some(s) => CString::new(s)?,
                 None => CString::default(),
             };
-            ffi::MsiDoAction(self.h, action.as_ptr());
+            let ret = ffi::MsiDoAction(self.h, action.as_ptr());
+            if ret != ffi::ERROR_SUCCESS {
+                return Err(Error::from_error_code(ret));
+            }
+
+            Ok(())
         }
     }
 
@@ -62,7 +67,7 @@ impl Session {
     /// #[no_mangle]
     /// pub extern "C" fn MyCustomAction(session: Session) -> u32 {
     ///     for i in 0..5 {
-    ///         session.do_deferred_action("MyDeferredCustomAction", &i.to_string())
+    ///         session.do_deferred_action("MyDeferredCustomAction", &i.to_string());
     ///     }
     ///     ERROR_SUCCESS
     /// }
@@ -70,14 +75,14 @@ impl Session {
     /// #[no_mangle]
     /// pub extern "C" fn MyDeferredCustomAction(session: Session) -> u32 {
     ///     let data = session.property("CustomActionData").expect("failed to get CustomActionData");
-    ///     let record = Record::from(data);
+    ///     let record = Record::try_from(data).expect("failed to create record");
     ///     session.message(MessageType::Info, &record);
     ///     ERROR_SUCCESS
     /// }
     /// ```
-    pub fn do_deferred_action(&self, action: &str, custom_action_data: &str) {
-        self.set_property(action, Some(custom_action_data));
-        self.do_action(Some(action));
+    pub fn do_deferred_action(&self, action: &str, custom_action_data: &str) -> Result<()> {
+        self.set_property(action, Some(custom_action_data))?;
+        self.do_action(Some(action))
     }
 
     /// The numeric language ID used by the current install session.
@@ -155,21 +160,37 @@ impl Session {
     }
 
     /// Sets the value of the named property. Pass `None` to clear the field.
-    pub fn set_property(&self, name: &str, value: Option<&str>) {
+    pub fn set_property(&self, name: &str, value: Option<&str>) -> Result<()> {
         unsafe {
-            let name = CString::new(name).unwrap();
+            let name = CString::new(name)?;
             let value = match value {
-                Some(s) => CString::new(s).unwrap(),
+                Some(s) => CString::new(s)?,
                 None => CString::default(),
             };
 
-            ffi::MsiSetProperty(
+            let ret = ffi::MsiSetProperty(
                 self.h,
                 name.as_ptr() as ffi::LPCSTR,
                 value.as_ptr() as ffi::LPCSTR,
             );
+            if ret != ffi::ERROR_SUCCESS {
+                return Err(Error::from_error_code(ret));
+            }
+
+            Ok(())
         }
     }
+}
+
+/// Message types that can be processed by a custom action.
+#[repr(u32)]
+pub enum MessageType {
+    Error = 0x0100_0000,
+    Warning = 0x0200_0000,
+    User = 0x0300_0000,
+    Info = 0x0400_0000,
+    Progress = 0x0a00_0000,
+    CommonData = 0x0b00_0000,
 }
 
 /// Run modes passed to `Session::mode`.
