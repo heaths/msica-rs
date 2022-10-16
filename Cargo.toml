@@ -10,6 +10,14 @@ description = "Rust for Windows Installer Custom Actions"
 homepage = "https://github.com/heaths/msica-rs/"
 repository = "https://github.com/heaths/msica-rs/"
 
+[features]
+default = []
+nightly = []
+
+[package.metadata.docs.rs]
+all-features = true
+default-target = "x86_64-pc-windows-msvc"
+
 [[example]]
 name = "deferred"
 crate-type = ["cdylib"]

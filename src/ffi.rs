@@ -3,7 +3,7 @@
 
 use crate::ModifyMode;
 
-use super::{MessageType, RunMode};
+use crate::{MessageType, RunMode};
 use std::{
     fmt::Display,
     ops::{Deref, Not},

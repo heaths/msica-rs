@@ -17,16 +17,41 @@ You can define custom actions in Rust using its [foreign function interface][ffi
 use msica::*;
 
 const ERROR_SUCCESS: u32 = 0;
+const ERROR_INSTALL_FAILURE: u32 = 1603;
 
 #[no_mangle]
 pub extern "C" fn MyCustomAction(session: Session) -> u32 {
+    match Record::with_fields(
+        Some("this is [1] [2]"),
+        vec![
+            Field::IntegerData(1),
+            Field::StringData("example".to_owned()),
+        ],
+    ) {
+        Ok(record) => {
+            session.message(MessageType::User, &record);
+            ERROR_SUCCESS
+        }
+        _ => ERROR_INSTALL_FAILURE,
+    }
+}
+```
+
+### Using nightly feature
+
+If you enable the `nightly` feature, you can use the question mark operator (`?`) to propagate errors:
+
+```rust
+use msica::*;
+
+#[no_mangle]
+pub extern "C" fn MyCustomAction(session: Session) -> CustomActionResult {
     let record = Record::with_fields(
         Some("this is [1] [2]"),
         vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
-    );
+    )?;
     session.message(MessageType::User, &record);
-
-    ERROR_SUCCESS
+    CustomActionResult::Succeed
 }
 ```
 

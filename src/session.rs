@@ -1,8 +1,8 @@
 // Copyright 2022 Heath Stewart.
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
-use super::ffi;
-use super::{Database, MessageType, Record, RunMode};
+use crate::ffi;
+use crate::{Database, Error, Record, Result};
 use std::ffi::CString;
 
 /// A Windows Installer session passed as an [`MSIHANDLE`] to custom actions.
@@ -11,16 +11,15 @@ use std::ffi::CString;
 ///
 /// ```no_run
 /// use msica::*;
-/// const ERROR_SUCCESS: u32 = 0;
 ///
 /// #[no_mangle]
-/// pub extern "C" fn MyCustomAction(session: Session) -> u32 {
+/// pub extern "C" fn MyCustomAction(session: Session) -> CustomActionResult {
 ///     let record = Record::with_fields(
 ///         Some("this is [1] [2]"),
 ///         vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
-///     );
+///     )?;
 ///     session.message(MessageType::User, &record);
-///     ERROR_SUCCESS
+///     CustomActionResult::Succeed
 /// }
 /// ```
 #[repr(transparent)]
@@ -42,13 +41,18 @@ impl Session {
     ///
     /// To schedule a deferred custom action with its `CustomActionData`,
     /// call `do_deferred_action`.
-    pub fn do_action(&self, action: Option<&str>) {
+    pub fn do_action(&self, action: Option<&str>) -> Result<()> {
         unsafe {
             let action = match action {
-                Some(s) => CString::new(s).unwrap(),
+                Some(s) => CString::new(s)?,
                 None => CString::default(),
             };
-            ffi::MsiDoAction(self.h, action.as_ptr());
+            let ret = ffi::MsiDoAction(self.h, action.as_ptr());
+            if ret != ffi::ERROR_SUCCESS {
+                return Err(Error::from_error_code(ret));
+            }
+
+            Ok(())
         }
     }
 
@@ -63,22 +67,22 @@ impl Session {
     /// #[no_mangle]
     /// pub extern "C" fn MyCustomAction(session: Session) -> u32 {
     ///     for i in 0..5 {
-    ///         session.do_deferred_action("MyDeferredCustomAction", &i.to_string())
+    ///         session.do_deferred_action("MyDeferredCustomAction", &i.to_string());
     ///     }
     ///     ERROR_SUCCESS
     /// }
     ///
     /// #[no_mangle]
     /// pub extern "C" fn MyDeferredCustomAction(session: Session) -> u32 {
-    ///     let data = session.property("CustomActionData");
-    ///     let record = Record::from(data);
+    ///     let data = session.property("CustomActionData").expect("failed to get CustomActionData");
+    ///     let record = Record::try_from(data).expect("failed to create record");
     ///     session.message(MessageType::Info, &record);
     ///     ERROR_SUCCESS
     /// }
     /// ```
-    pub fn do_deferred_action(&self, action: &str, custom_action_data: &str) {
-        self.set_property(action, Some(custom_action_data));
-        self.do_action(Some(action));
+    pub fn do_deferred_action(&self, action: &str, custom_action_data: &str) -> Result<()> {
+        self.set_property(action, Some(custom_action_data))?;
+        self.do_action(Some(action))
     }
 
     /// The numeric language ID used by the current install session.
@@ -101,15 +105,15 @@ impl Session {
     /// use msica::*;
     ///
     /// #[no_mangle]
-    /// pub extern "C" fn MyCustomAction(session: Session) -> u32 {
+    /// pub extern "C" fn MyCustomAction(session: Session) -> CustomActionResult {
     ///     if !session.mode(RunMode::Scheduled) {
     ///         session.do_deferred_action("MyCustomAction", "Hello, world!");
     ///     } else {
-    ///         let data = session.property("CustomActionData");
-    ///         let record = Record::with_fields(Some(data.as_str()), vec![]);
+    ///         let data = session.property("CustomActionData")?;
+    ///         let record = Record::with_fields(Some(data.as_str()), vec![])?;
     ///         session.message(MessageType::User, &record);
     ///     }
-    ///     ERROR_SUCCESS
+    ///     CustomActionResult::Succeed
     /// }
     /// ```
     pub fn mode(&self, mode: RunMode) -> bool {
@@ -117,53 +121,111 @@ impl Session {
     }
 
     /// Gets the value of the named property, or an empty string if undefined.
-    pub fn property(&self, name: &str) -> String {
+    pub fn property(&self, name: &str) -> Result<String> {
         unsafe {
             // TODO: Return result containing NulError if returned.
-            let name = CString::new(name).unwrap();
+            let name = CString::new(name)?;
 
             let mut value_len = 0u32;
             let value = CString::default();
 
-            if ffi::MsiGetProperty(
+            let mut ret = ffi::MsiGetProperty(
                 self.h,
                 name.as_ptr(),
                 value.as_ptr() as ffi::LPSTR,
                 &mut value_len as *mut u32,
-            ) == ffi::ERROR_MORE_DATA
-            {
-                let mut value_len = value_len + 1u32;
-                let mut value: Vec<u8> = vec![0; value_len as usize];
-
-                ffi::MsiGetProperty(
-                    self.h,
-                    name.as_ptr(),
-                    value.as_mut_ptr() as ffi::LPSTR,
-                    &mut value_len as *mut u32,
-                );
-
-                value.truncate(value_len as usize);
-                return String::from_utf8(value).unwrap();
+            );
+            if ret != ffi::ERROR_MORE_DATA {
+                return Err(Error::from_error_code(ret));
             }
 
-            String::default()
+            let mut value_len = value_len + 1u32;
+            let mut value: Vec<u8> = vec![0; value_len as usize];
+
+            ret = ffi::MsiGetProperty(
+                self.h,
+                name.as_ptr(),
+                value.as_mut_ptr() as ffi::LPSTR,
+                &mut value_len as *mut u32,
+            );
+            if ret != ffi::ERROR_SUCCESS {
+                return Err(Error::from_error_code(ret));
+            }
+
+            value.truncate(value_len as usize);
+            let text = String::from_utf8(value)?;
+
+            Ok(text)
         }
     }
 
     /// Sets the value of the named property. Pass `None` to clear the field.
-    pub fn set_property(&self, name: &str, value: Option<&str>) {
+    pub fn set_property(&self, name: &str, value: Option<&str>) -> Result<()> {
         unsafe {
-            let name = CString::new(name).unwrap();
+            let name = CString::new(name)?;
             let value = match value {
-                Some(s) => CString::new(s).unwrap(),
+                Some(s) => CString::new(s)?,
                 None => CString::default(),
             };
 
-            ffi::MsiSetProperty(
+            let ret = ffi::MsiSetProperty(
                 self.h,
                 name.as_ptr() as ffi::LPCSTR,
                 value.as_ptr() as ffi::LPCSTR,
             );
+            if ret != ffi::ERROR_SUCCESS {
+                return Err(Error::from_error_code(ret));
+            }
+
+            Ok(())
         }
     }
+}
+
+/// Message types that can be processed by a custom action.
+#[repr(u32)]
+pub enum MessageType {
+    Error = 0x0100_0000,
+    Warning = 0x0200_0000,
+    User = 0x0300_0000,
+    Info = 0x0400_0000,
+    Progress = 0x0a00_0000,
+    CommonData = 0x0b00_0000,
+}
+
+/// Run modes passed to `Session::mode`.
+#[repr(u32)]
+pub enum RunMode {
+    /// Administrative mode install, else product install.
+    Admin = 0,
+    /// Advertise mode of install.
+    Advertise = 1,
+    ///Maintenance mode database loaded.
+    Maintenance = 2,
+    /// Rollback is enabled.
+    RollbackEnabled = 3,
+    /// Log file is active.
+    LogEnabled = 4,
+    /// Executing or spooling operations.
+    Operations = 5,
+    /// Reboot is needed.
+    RebootAtEnd = 6,
+    /// Reboot is needed to continue installation
+    RebootNow = 7,
+    /// Installing files from cabinets and files using Media table.
+    Cabinet = 8,
+    /// Source files use only short file names.
+    SourceShortNames = 9,
+    /// Target files are to use only short file names.
+    TargetShortNames = 10,
+    /// Operating system is Windows 98/95.
+    Windows9x = 12,
+    /// Operating system supports advertising of products.
+    ZawEnabled = 13,
+    /// Deferred custom action called from install script execution.
+    Scheduled = 16,
+    /// Deferred custom action called from rollback execution script.
+    Rollback = 17,
+    /// Deferred custom action called from commit execution script.
+    Commit = 18,
 }
