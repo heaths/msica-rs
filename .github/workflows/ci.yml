@@ -8,6 +8,13 @@ on:
   push:
     branches:
       - main
+  workflow_call:
+    inputs:
+      full:
+        description: Whether to run a full suite of checks.
+        required: false
+        type: boolean
+        default: true
 
 defaults:
   run:
@@ -27,7 +34,13 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
+          # TODO: Remove duplicate configuration when https://github.com/actions-rs/toolchain/issues/126 is resolved.
+          components: cargo, rust-docs, rustc, rustfmt
+          override: true
+          toolchain: nightly
+          target: x86_64-pc-windows-msvc
       - name: Check formatting
+        if: ${{ inputs.full }}
         uses: actions-rs/cargo@v1
         with:
           command: fmt
@@ -44,8 +57,11 @@ jobs:
           command: doc
           args: --all-features
       - name: Set up MSBuild
+        if: ${{ inputs.full }}
         uses: microsoft/setup-msbuild@v1.1
       - name: Build example MSI
+        if: ${{ inputs.full }}
         run: msbuild -t:build examples/example.wixproj
       - name: Install example MSI
+        if: ${{ inputs.full }}
         run: start-process msiexec.exe -args '/i', "$PWD\\target\\debug\\example.msi", '/qn' -wait
