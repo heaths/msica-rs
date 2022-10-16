@@ -3,5 +3,5 @@
 
 [toolchain]
 channel = "nightly"
-components = ["cargo", "rust-docs", "rustc", "rustfmt"]
+components = ["cargo", "clippy", "rustfmt"]
 targets = ["x86_64-pc-windows-msvc"]

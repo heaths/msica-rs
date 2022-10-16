@@ -322,9 +322,7 @@ impl TryFrom<String> for Record {
 
 impl Display for Record {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = self
-            .format_text()
-            .unwrap_or("cannot format record".to_owned());
+        let s = self.format_text().unwrap_or_else(|_| "(record)".to_owned());
         write!(f, "{}", s)
     }
 }
