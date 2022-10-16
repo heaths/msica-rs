@@ -47,8 +47,9 @@ impl Record {
     /// let record = Record::with_fields(
     ///     Some("this is [1] [2]"),
     ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
-    /// ).expect("failed to create record");
+    /// )?;
     /// assert_eq!(record.field_count(), 2);
+    /// # Ok::<(), msica::Error>(())
     /// ```
     pub fn with_fields(text: Option<&str>, fields: Vec<Field>) -> Result<Self> {
         unsafe {
@@ -93,8 +94,9 @@ impl Record {
     /// let record = Record::with_fields(
     ///     Some("this is [1] [2]{ without [3]}"),
     ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned()), Field::Null],
-    /// ).expect("failed to create record");
-    /// assert_eq!(record.format_text().expect("failed to format record"), "this is 1 example");
+    /// )?;
+    /// assert_eq!(record.format_text()?, "this is 1 example");
+    /// # Ok::<(), msica::Error>(())
     /// ```
     pub fn format_text(&self) -> Result<String> {
         unsafe {
@@ -143,8 +145,9 @@ impl Record {
     /// let record = Record::with_fields(
     ///     Some("this is [1] [2]"),
     ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
-    /// ).expect("failed to create record");
-    /// assert_eq!(record.string_data(2).expect("failed to get field data"), "example");
+    /// )?;
+    /// assert_eq!(record.string_data(2)?, "example");
+    /// # Ok::<(), msica::Error>(())
     /// ```
     pub fn string_data(&self, field: u32) -> Result<String> {
         unsafe {
@@ -191,8 +194,9 @@ impl Record {
     /// use msica::{Field, Record};
     ///
     /// let mut record = Record::new(1);
-    /// record.set_string_data(1, Some("example")).expect("failed to set field data");
-    /// assert_eq!(record.string_data(1).expect("failed to get field data"), "example");
+    /// record.set_string_data(1, Some("example"))?;
+    /// assert_eq!(record.string_data(1)?, "example");
+    /// # Ok::<(), msica::Error>(())
     /// ```
     pub fn set_string_data(&self, field: u32, value: Option<&str>) -> Result<()> {
         unsafe {
@@ -223,8 +227,9 @@ impl Record {
     /// let record = Record::with_fields(
     ///     Some("this is [1] [2]"),
     ///     vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
-    /// ).expect("failed to create record");
+    /// )?;
     /// assert_eq!(record.integer_data(1), Some(1));
+    /// # Ok::<(), msica::Error>(())
     /// ```
     pub fn integer_data(&self, field: u32) -> Option<i32> {
         unsafe {
@@ -245,8 +250,9 @@ impl Record {
     /// use msica::{Field, Record};
     ///
     /// let mut record = Record::new(1);
-    /// record.set_integer_data(1, 42).expect("failed to set field data");
+    /// record.set_integer_data(1, 42)?;
     /// assert_eq!(record.integer_data(1), Some(42));
+    /// # Ok::<(), msica::Error>(())
     /// ```
     pub fn set_integer_data(&self, field: u32, value: i32) -> Result<()> {
         unsafe {

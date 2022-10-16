@@ -16,6 +16,7 @@
     "PMSIHANDLE",
     "pwsh",
     "repr",
+    "rustc",
     "rustfmt",
     "rustup",
     "thiserror",
