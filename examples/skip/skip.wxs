@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!--
+  Copyright 2022 Heath Stewart.
+  Licensed under the MIT License. See LICENSE.txt in the project root for license information.
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <Binary Id="SkipExample" SourceFile="examples\skip.dll" />
+    <CustomAction Id="SkipExampleCustomAction" BinaryKey="SkipExample" DllEntry="SkipExampleCustomAction" />
+    <CustomAction Id="SkipExampleCustomActionDeferred" BinaryKey="SkipExample" DllEntry="SkipExampleCustomAction" Execute="deferred" />
+    <InstallExecuteSequence>
+      <Custom Action="SkipExampleCustomAction" After="InstallInitialize" />
+    </InstallExecuteSequence>
+  </Fragment>
+</Wix>

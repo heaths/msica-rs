@@ -22,3 +22,8 @@ default-target = "x86_64-pc-windows-msvc"
 name = "deferred"
 crate-type = ["cdylib"]
 path = "examples/deferred/lib.rs"
+
+[[example]]
+name = "skip"
+crate-type = ["cdylib"]
+path = "examples/skip/lib.rs"
