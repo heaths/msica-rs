@@ -31,36 +31,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Set up toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          # TODO: Remove duplicate configuration when https://github.com/actions-rs/toolchain/issues/126 is resolved.
-          components: cargo, clippy, rustfmt
-          override: true
-          toolchain: nightly
-          target: x86_64-pc-windows-msvc
+        run: rustup show
       - name: Check formatting
         if: ${{ success() && (inputs.full || github.event_name != 'workflow_call') }}
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo fmt --all -- --check
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          # Need to pass `--all-features` because of https://github.com/rust-lang/cargo/issues/2911.
-          args: --all-features --workspace
+        run: cargo test --all-features --workspace
       - name: Lint
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all-features --all-targets --no-deps --workspace
+        run: cargo clippy --all-features --all-targets --no-deps --workspace
       - name: Build documentation
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --all-features --no-deps --workspace
+        run: cargo doc --all-features --no-deps --workspace
       - name: Set up MSBuild
         if: ${{ success() && (inputs.full || github.event_name != 'workflow_call') }}
         uses: microsoft/setup-msbuild@v1.1
