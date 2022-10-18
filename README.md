@@ -3,7 +3,7 @@
 ![latest version](https://img.shields.io/crates/v/msica?logo=rust)
 ![build status](https://github.com/heaths/msica-rs/actions/workflows/ci.yml/badge.svg?event=push)
 
-Writing [custom actions] for [Windows Installer] can be difficult enough already,
+Writing [custom actions] for [Windows Installer] (MSI) can be difficult enough already,
 but using Rust can help mitigate some potential issues concerning memory and handle leaks.
 
 These APIs roughly mimic the Windows Installer [automation interface] for those APIs
