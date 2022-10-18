@@ -238,7 +238,7 @@ pub mod experimental {
     }
 
     impl FromResidual for CustomActionResult {
-        fn from_residual(residual: <Self as Try>::Residual) -> Self {
+        fn from_residual(residual: CustomActionResultCode) -> Self {
             match residual.0.into() {
                 ffi::ERROR_NO_MORE_ITEMS => CustomActionResult::Skip,
                 ffi::ERROR_INSTALL_USEREXIT => CustomActionResult::Cancel,
@@ -256,6 +256,12 @@ pub mod experimental {
                 ErrorKind::ErrorCode(code) => CustomActionResult::from(code.get()),
                 _ => CustomActionResult::Fail,
             }
+        }
+    }
+
+    impl<E: std::error::Error> FromResidual<std::result::Result<Infallible, E>> for CustomActionResult {
+        default fn from_residual(_: std::result::Result<Infallible, E>) -> Self {
+            CustomActionResult::Fail
         }
     }
 }
