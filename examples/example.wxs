@@ -37,5 +37,6 @@
     </InstallExecuteSequence>
     <!-- Examples -->
     <CustomActionRef Id="DeferredExampleCustomAction" />
+    <CustomActionRef Id="SkipExampleCustomAction" />
   </Product>
 </Wix>
