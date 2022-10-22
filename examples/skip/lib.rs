@@ -17,6 +17,10 @@ pub extern "C" fn SkipExampleCustomAction(session: Session) -> CustomActionResul
         }
         true => {
             let data = session.property("CustomActionData")?;
+            if data.is_empty() {
+                return Succeed;
+            }
+
             // Unnecessarily parsing the string demonstrates using ? for any possible error.
             let data = data.parse::<u32>()?;
             if data == 2 {

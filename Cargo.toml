@@ -27,3 +27,8 @@ path = "examples/deferred/lib.rs"
 name = "skip"
 crate-type = ["cdylib"]
 path = "examples/skip/lib.rs"
+
+[[example]]
+name = "trace"
+crate-type = ["cdylib"]
+path = "examples/trace/lib.rs"

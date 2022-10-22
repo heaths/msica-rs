@@ -38,5 +38,6 @@
     <!-- Examples -->
     <CustomActionRef Id="DeferredExampleCustomAction" />
     <CustomActionRef Id="SkipExampleCustomAction" />
+    <CustomActionRef Id="TraceExampleCustomAction" />
   </Product>
 </Wix>
