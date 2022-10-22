@@ -2,7 +2,7 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #![allow(dead_code)]
-#![cfg_attr(feature = "nightly", feature(try_trait_v2))]
+#![cfg_attr(feature = "nightly", feature(min_specialization, try_trait_v2))]
 #![doc = include_str!("../README.md")]
 
 // Fail fast on non-Windows platforms.
