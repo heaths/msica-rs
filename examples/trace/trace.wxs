@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!--
+  Copyright 2022 Heath Stewart.
+  Licensed under the MIT License. See LICENSE.txt in the project root for license information.
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <Binary Id="TraceExample" SourceFile="examples\trace.dll" />
+    <CustomAction Id="TraceExampleCustomAction" BinaryKey="TraceExample" DllEntry="TraceExampleCustomAction" />
+    <InstallExecuteSequence>
+      <Custom Action="TraceExampleCustomAction" Sequence="1" />
+    </InstallExecuteSequence>
+  </Fragment>
+</Wix>

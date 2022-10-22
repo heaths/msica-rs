@@ -24,6 +24,7 @@
     <Compile Include="example.wxs" />
     <Compile Include="deferred\deferred.wxs" />
     <Compile Include="skip\skip.wxs" />
+    <Compile Include="trace\trace.wxs" />
   </ItemGroup>
   <ItemGroup>
     <BindInputPaths Include="..\target\$(Configuration)" />
