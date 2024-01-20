@@ -39,7 +39,8 @@ pub extern "C" fn MyCustomAction(session: Session) -> u32 {
 
 ### Using nightly feature
 
-If you enable the `nightly` feature, you can use the question mark operator (`?`) to propagate errors:
+If you enable the `nightly` feature and use the nightly toolchain, you can use the question mark operator (`?`) to
+propagate errors:
 
 ```rust
 use msica::*;
