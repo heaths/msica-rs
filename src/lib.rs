@@ -13,7 +13,7 @@ compile_error!("supported on windows only");
 // for inspiration for the shape of this API.
 
 mod database;
-mod errors;
+mod error;
 mod ffi;
 mod record;
 mod session;
@@ -21,8 +21,8 @@ mod view;
 
 pub use database::Database;
 #[cfg(feature = "nightly")]
-pub use errors::experimental::CustomActionResult;
-pub use errors::{Error, ErrorKind, Result};
+pub use error::experimental::CustomActionResult;
+pub use error::{Error, ErrorKind, Result};
 pub use record::{Field, Record};
 pub use session::{MessageType, RunMode, Session};
 pub use view::{ModifyMode, View};
@@ -32,8 +32,9 @@ pub use view::{ModifyMode, View};
 /// # Example
 ///
 /// ```
-/// if let Some(error) = msica::last_error_record() {
-///     println!("last error: {}", error.format_text()?);
+/// if let Some(record) = msica::last_error_record() {
+///     println!("last error: {}", record.format_text()?);
+///     return Err(record.into());
 /// }
 /// # Ok::<(), msica::Error>(())
 /// ```

@@ -39,7 +39,7 @@ The following software is recommended:
 To build and test, simply run:
 
 ```powershell
-cargo test --all --features nightly
+cargo test --features nightly
 ```
 
 By default, this will build x64 custom action DLLs from under _examples_.
@@ -61,7 +61,7 @@ If you have the x86 libraries for the Windows SDK installed, you can also build 
 
 ```powershell
 rustup target install i686-pc-windows-msvc
-cargo test --all --target i686-pc-windows-msvc
+cargo test --target i686-pc-windows-msvc
 msbuild -t:rebuild examples/product.wixproj -p:Platform=x86
 ```
 
