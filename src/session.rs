@@ -1,4 +1,4 @@
-// Copyright 2022 Heath Stewart.
+// Copyright 2024 Heath Stewart.
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 use crate::ffi;
@@ -41,7 +41,7 @@ impl Session {
     /// If `None` the default action is run e.g., `INSTALL`.
     ///
     /// To schedule a deferred custom action with its `CustomActionData`,
-    /// call `do_deferred_action`.
+    /// call [`Session::do_deferred_action()`].
     pub fn do_action(&self, action: Option<&str>) -> Result<()> {
         unsafe {
             let action = match action {
@@ -195,7 +195,7 @@ pub enum MessageType {
     CommonData = 0x0b00_0000,
 }
 
-/// Run modes passed to `Session::mode`.
+/// Run modes passed to [`Session::mode()`].
 #[repr(u32)]
 pub enum RunMode {
     /// Administrative mode install, else product install.

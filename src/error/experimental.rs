@@ -1,4 +1,4 @@
-// Copyright 2022 Heath Stewart.
+// Copyright 2024 Heath Stewart.
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #![cfg(feature = "nightly")]
@@ -11,7 +11,7 @@ use std::ops::{ControlFlow, FromResidual, Try};
 
 /// A result to return from a custom action.
 ///
-/// This allows you to use the `?` operator to map any `Result<T, E>` to [`CustomActionResult::Fail`].
+/// This allows you to use the `?` operator to map any `Result<T, E>` to [`CustomActionResult::Failure`].
 ///
 /// # Example
 ///
