@@ -49,4 +49,6 @@ jobs:
         run: msbuild -t:build examples/example.wixproj
       - name: Install example MSI
         if: ${{ success() && (inputs.full || github.event_name != 'workflow_call') }}
-        run: start-process msiexec.exe -args '/i', "$PWD\\target\\debug\\example.msi", '/qn' -wait
+        run: |
+          $p = start-process msiexec.exe -args '/i', "$PWD\target\debug\example.msi", '/qn' -wait -passthru
+          exit $p.ExitCode
