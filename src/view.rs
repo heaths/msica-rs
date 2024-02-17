@@ -1,4 +1,4 @@
-// Copyright 2022 Heath Stewart.
+// Copyright 2024 Heath Stewart.
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 use crate::ffi;
@@ -8,12 +8,12 @@ use crate::{Error, Record, Result};
 use crate::Database;
 
 /// The `View` object represents a result set obtained when processing a query
-/// using the `OpenView` method of the [`Database`] object. Before any data can be transferred,
-/// the query must be executed using the `execute` method, passing to it all replaceable parameters
+/// using the [`Database::open_view()`] method. Before any data can be transferred,
+/// the query must be executed using the [`View::execute()`] method, passing to it all replaceable parameters
 /// designated within the SQL query string.
 ///
 /// The query may be executed again, with different parameters if needed,
-/// but only after freeing the result set either by fetching all the records or by calling the `close` method.
+/// but only after freeing the result set either by fetching all the records or by calling the [`View::close()`] method.
 pub struct View {
     h: ffi::PMSIHANDLE,
 }
@@ -21,7 +21,7 @@ pub struct View {
 impl View {
     /// Releases the result set for an executed view.
     ///
-    /// `close` must be called before `execute` can be called again unless all records have been fetched.
+    /// `close` must be called before [`View::execute()`] can be called again unless all records have been fetched.
     pub fn close(&self) {
         unsafe {
             ffi::MsiViewClose(*self.h);
@@ -33,7 +33,7 @@ impl View {
     ///
     /// The values of these parameters are passed in as the corresponding fields of a parameter record.
     ///
-    /// `close` must be called before `execute` can be called again unless all records have been fetched.
+    /// [`View::close()`] must be called before `execute` can be called again unless all records have been fetched.
     pub fn execute(&self, record: Option<Record>) -> Result<()> {
         unsafe {
             let h = match record {
@@ -54,7 +54,9 @@ impl View {
 
     /// Updates a fetched record.
     ///
-    /// You can pass `Update` or `Delete` with a record immediately after using `Insert`, `InsertTemporary`, or `Seek` provided you have *not* modified the 0th field of the inserted or sought record.
+    /// You can pass [`Update`](ModifyMode::Update) or [`Delete`](ModifyMode::Delete) with a record immediately after using
+    /// [`Insert`](ModifyMode::Insert), [`InsertTemporary`](ModifyMode::InsertTemporary), or [`Seek`](ModifyMode::Seek)
+    /// provided you have *not* modified the 0th field of the inserted or sought record.
     ///
     /// You cannot fetch a record that contains binary data from one database and then use that record to insert the data into another database.
     ///
@@ -101,7 +103,7 @@ impl Iterator for View {
     }
 }
 
-/// Modify modes passed to `View::modify`.
+/// Modify modes passed to [`View::modify()`].
 #[repr(u32)]
 pub enum ModifyMode {
     /// Refreshes the information in the supplied record without changing the position in the result set and without affecting subsequent fetch operations.
@@ -109,7 +111,7 @@ pub enum ModifyMode {
     /// Seek cannot be used with multi-table queries. This mode cannot be used with a view containing joins.
     Seek = u32::MAX,
 
-    /// Refreshes the information in the record. Must first call `fetch` on [`View`] with the same record.
+    /// Refreshes the information in the record. Must first call [`View::next()`] with the same record.
     /// Fails for a deleted row. Works with read-write and read-only records.
     Refresh = 0,
 
@@ -117,7 +119,7 @@ pub enum ModifyMode {
     /// This mode cannot be used with a view containing joins.
     Insert = 1,
 
-    /// Updates an existing record. Non-primary keys only. Must first call `fetch` on [`View`].
+    /// Updates an existing record. Non-primary keys only. Must first call [`View::next()`].
     /// Fails with a deleted record. Works only with read-write records.
     Update = 2,
 
@@ -125,7 +127,7 @@ pub enum ModifyMode {
     /// Fails with a read-only database. This mode cannot be used with a view containing joins.
     Assign = 3,
 
-    /// Updates or deletes and inserts a record into a table. Must first call `fetch` on [`View`] with the same record.
+    /// Updates or deletes and inserts a record into a table. Must first call [`View::next()`] with the same record.
     /// Updates record if the primary keys are unchanged. Deletes old row and inserts new if primary keys have changed. Fails with a read-only database.
     /// This mode cannot be used with a view containing joins.
     Replace = 4,
@@ -135,7 +137,7 @@ pub enum ModifyMode {
     /// This mode cannot be used with a view containing joins.
     Merge = 5,
 
-    /// Remove a row from the table. You must first call the `fetch` on [`View`] function with the same record.
+    /// Remove a row from the table. You must first call the [`View::next()`] function with the same record.
     /// Fails if the row has been deleted. Works only with read-write records. This mode cannot be used with a view containing joins.
     Delete = 6,
 

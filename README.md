@@ -58,7 +58,7 @@ pub extern "C" fn MyCustomAction(session: Session) -> CustomActionResult {
 
 ## License
 
-This project is licensed under the [MIT license](LICENSE.txt).
+This project is licensed under the [MIT license](https://github.com/heaths/msica-rs/blob/main/LICENSE.txt).
 
 [automation interface]: https://docs.microsoft.com/windows/win32/msi/automation-interface
 [custom actions]: https://docs.microsoft.com/windows/win32/msi/custom-actions
