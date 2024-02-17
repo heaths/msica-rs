@@ -27,6 +27,15 @@ pub use record::{Field, Record};
 pub use session::{MessageType, RunMode, Session};
 pub use view::{ModifyMode, View};
 
+pub mod prelude {
+    #[cfg(feature = "nightly")]
+    pub use crate::error::experimental::CustomActionResult::{self, *};
+    // Export objects and enums used in inputs to those objects' methods.
+    pub use crate::{
+        Database, Error, Field, MessageType, ModifyMode, Record, Result, RunMode, Session, View,
+    };
+}
+
 /// Gets the last Windows Installer error for the current process.
 ///
 /// # Example

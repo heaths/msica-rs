@@ -1,8 +1,7 @@
 // Copyright 2022 Heath Stewart.
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
-use msica::CustomActionResult::Succeed;
-use msica::*;
+use msica::prelude::*;
 
 #[no_mangle]
 pub extern "C" fn DeferredExampleCustomAction(session: Session) -> CustomActionResult {
@@ -32,7 +31,7 @@ pub extern "C" fn DeferredExampleCustomAction(session: Session) -> CustomActionR
         );
         session.do_deferred_action("DeferredExampleCustomActionDeferred", &data)?;
     }
-    Succeed
+    Success
 }
 
 #[no_mangle]
@@ -49,5 +48,5 @@ pub extern "C" fn DeferredExampleCustomActionDeferred(session: Session) -> Custo
         ],
     )?;
     session.message(MessageType::Info, &record);
-    Succeed
+    Success
 }

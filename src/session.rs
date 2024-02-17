@@ -10,7 +10,7 @@ use std::ffi::CString;
 /// # Example
 ///
 /// ```no_run
-/// use msica::*;
+/// use msica::prelude::*;
 /// const ERROR_SUCCESS: u32 = 0;
 ///
 /// #[no_mangle]
@@ -62,7 +62,7 @@ impl Session {
     /// # Example
     ///
     /// ```no_run
-    /// use msica::*;
+    /// use msica::prelude::*;
     /// const ERROR_SUCCESS: u32 = 0;
     ///
     /// #[no_mangle]
@@ -103,7 +103,7 @@ impl Session {
     /// You could use the same custom action entry point for scheduling and executing deferred actions:
     ///
     /// ```no_run
-    /// use msica::*;
+    /// use msica::prelude::*;
     /// const ERROR_SUCCESS: u32 = 0;
     ///
     /// #[no_mangle]

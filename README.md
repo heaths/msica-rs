@@ -14,7 +14,7 @@ that can be called in immediate and deferred custom actions.
 You can define custom actions in Rust using its [foreign function interface][ffi] like:
 
 ```rust
-use msica::*;
+use msica::prelude::*;
 
 const ERROR_SUCCESS: u32 = 0;
 const ERROR_INSTALL_FAILURE: u32 = 1603;
@@ -43,7 +43,7 @@ If you enable the `nightly` feature and use the nightly toolchain, you can use t
 propagate errors:
 
 ```rust
-use msica::*;
+use msica::prelude::*;
 
 #[no_mangle]
 pub extern "C" fn MyCustomAction(session: Session) -> CustomActionResult {
@@ -52,7 +52,7 @@ pub extern "C" fn MyCustomAction(session: Session) -> CustomActionResult {
         vec![Field::IntegerData(1), Field::StringData("example".to_owned())],
     )?;
     session.message(MessageType::User, &record);
-    CustomActionResult::Succeed
+    Success
 }
 ```
 
