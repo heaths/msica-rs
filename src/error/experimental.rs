@@ -2,8 +2,8 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #![cfg(feature = "nightly")]
-use super::{Error, ErrorKind};
 use crate::ffi;
+use crate::{Error, ErrorKind};
 use std::convert::Infallible;
 use std::fmt::Display;
 use std::num::NonZeroU32;
@@ -50,10 +50,10 @@ pub enum CustomActionResult {
 impl Display for CustomActionResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let error = match &self {
-            Self::Success => "succeeded",
-            Self::Skip => "skip remaining actions",
-            Self::Cancel => "user canceled",
-            Self::Failure => "failed",
+            Self::Success => "completed successfully",
+            Self::Skip => "skipped remaining actions",
+            Self::Cancel => "user canceled installation",
+            Self::Failure => "fatal error during installation",
             Self::NotExecuted => "not executed",
         };
 
