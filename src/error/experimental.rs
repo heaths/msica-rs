@@ -2,8 +2,8 @@
 // Licensed under the MIT License. See LICENSE.txt in the project root for license information.
 
 #![cfg(feature = "nightly")]
-use super::{Error, ErrorKind};
 use crate::ffi;
+use crate::{Error, ErrorKind};
 use std::convert::Infallible;
 use std::fmt::Display;
 use std::num::NonZeroU32;
@@ -17,7 +17,7 @@ use std::ops::{ControlFlow, FromResidual, Try};
 ///
 /// ```no_run
 /// use std::ffi::OsString;
-/// use msica::{Session, CustomActionResult};
+/// use msica::prelude::*;
 ///
 /// #[no_mangle]
 /// pub extern "C" fn MyCustomAction(session: Session) -> CustomActionResult {
@@ -25,14 +25,14 @@ use std::ops::{ControlFlow, FromResidual, Try};
 ///
 ///     // Do something with `productName`.
 ///
-///     CustomActionResult::Succeed
+///     Success
 /// }
 /// ```
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(u32)]
 pub enum CustomActionResult {
     /// Completed actions successfully.
-    Succeed = ffi::ERROR_SUCCESS,
+    Success = ffi::ERROR_SUCCESS,
 
     /// Skip remaining actions. Not an error.
     Skip = ffi::ERROR_NO_MORE_ITEMS,
@@ -41,7 +41,7 @@ pub enum CustomActionResult {
     Cancel = ffi::ERROR_INSTALL_USEREXIT,
 
     /// Unrecoverable error occurred.
-    Fail = ffi::ERROR_INSTALL_FAILURE,
+    Failure = ffi::ERROR_INSTALL_FAILURE,
 
     /// Action not executed.
     NotExecuted = ffi::ERROR_FUNCTION_NOT_CALLED,
@@ -50,10 +50,10 @@ pub enum CustomActionResult {
 impl Display for CustomActionResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let error = match &self {
-            Self::Succeed => "succeeded",
-            Self::Skip => "skip remaining actions",
-            Self::Cancel => "user canceled",
-            Self::Fail => "failed",
+            Self::Success => "completed successfully",
+            Self::Skip => "skipped remaining actions",
+            Self::Cancel => "user canceled installation",
+            Self::Failure => "fatal error during installation",
             Self::NotExecuted => "not executed",
         };
 
@@ -64,54 +64,49 @@ impl Display for CustomActionResult {
 impl From<u32> for CustomActionResult {
     fn from(code: u32) -> Self {
         match code {
-            ffi::ERROR_SUCCESS => CustomActionResult::Succeed,
+            ffi::ERROR_SUCCESS => CustomActionResult::Success,
             ffi::ERROR_NO_MORE_ITEMS => CustomActionResult::Skip,
             ffi::ERROR_INSTALL_USEREXIT => CustomActionResult::Cancel,
             ffi::ERROR_FUNCTION_NOT_CALLED => CustomActionResult::NotExecuted,
-            _ => CustomActionResult::Fail,
+            _ => CustomActionResult::Failure,
         }
     }
 }
 
-#[allow(clippy::from_over_into)]
-impl Into<u32> for CustomActionResult {
-    fn into(self) -> u32 {
-        self as u32
+impl From<CustomActionResult> for u32 {
+    fn from(value: CustomActionResult) -> Self {
+        value as Self
     }
 }
 
-/// This type is an implementation detail and not intended for direct use.
-#[doc(hidden)]
-pub struct CustomActionResultCode(NonZeroU32);
-
-impl From<CustomActionResult> for CustomActionResultCode {
+impl From<CustomActionResult> for NonZeroU32 {
     fn from(value: CustomActionResult) -> Self {
-        CustomActionResultCode(NonZeroU32::new(value.into()).unwrap())
+        NonZeroU32::new(value.into()).unwrap()
     }
 }
 
 impl Try for CustomActionResult {
     type Output = u32;
-    type Residual = CustomActionResultCode;
+    type Residual = NonZeroU32;
 
     fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
         match self {
-            Self::Succeed => ControlFlow::Continue(ffi::ERROR_SUCCESS),
+            Self::Success => ControlFlow::Continue(ffi::ERROR_SUCCESS),
             _ => ControlFlow::Break(self.into()),
         }
     }
 
     fn from_output(_: Self::Output) -> Self {
-        CustomActionResult::Succeed
+        CustomActionResult::Success
     }
 }
 
 impl FromResidual for CustomActionResult {
-    fn from_residual(residual: CustomActionResultCode) -> Self {
-        match residual.0.into() {
+    fn from_residual(residual: <CustomActionResult as Try>::Residual) -> Self {
+        match residual.into() {
             ffi::ERROR_NO_MORE_ITEMS => CustomActionResult::Skip,
             ffi::ERROR_INSTALL_USEREXIT => CustomActionResult::Cancel,
-            ffi::ERROR_INSTALL_FAILURE => CustomActionResult::Fail,
+            ffi::ERROR_INSTALL_FAILURE => CustomActionResult::Failure,
             ffi::ERROR_FUNCTION_NOT_CALLED => CustomActionResult::NotExecuted,
             code => panic!("unexpected error code {}", code),
         }
@@ -123,14 +118,14 @@ impl FromResidual<Result<Infallible, Error>> for CustomActionResult {
         let error = residual.unwrap_err();
         match error.kind() {
             ErrorKind::ErrorCode(code) => CustomActionResult::from(code.get()),
-            _ => CustomActionResult::Fail,
+            _ => CustomActionResult::Failure,
         }
     }
 }
 
 impl<E: std::error::Error> FromResidual<std::result::Result<Infallible, E>> for CustomActionResult {
     default fn from_residual(_: std::result::Result<Infallible, E>) -> Self {
-        CustomActionResult::Fail
+        CustomActionResult::Failure
     }
 }
 
@@ -142,7 +137,7 @@ mod tests {
 
     #[test]
     fn from_u32() {
-        assert_eq!(CustomActionResult::Succeed, CustomActionResult::from(0u32));
+        assert_eq!(CustomActionResult::Success, CustomActionResult::from(0u32));
         assert_eq!(CustomActionResult::Skip, CustomActionResult::from(259u32));
         assert_eq!(
             CustomActionResult::Cancel,
@@ -152,16 +147,19 @@ mod tests {
             CustomActionResult::NotExecuted,
             CustomActionResult::from(1626u32)
         );
-        assert_eq!(CustomActionResult::Fail, CustomActionResult::from(1603u32));
-        assert_eq!(CustomActionResult::Fail, CustomActionResult::from(1u32));
+        assert_eq!(
+            CustomActionResult::Failure,
+            CustomActionResult::from(1603u32)
+        );
+        assert_eq!(CustomActionResult::Failure, CustomActionResult::from(1u32));
     }
 
     #[test]
     fn into_u32() {
-        assert_eq!(0u32, Into::<u32>::into(CustomActionResult::Succeed));
+        assert_eq!(0u32, Into::<u32>::into(CustomActionResult::Success));
         assert_eq!(259u32, Into::<u32>::into(CustomActionResult::Skip));
         assert_eq!(1602u32, Into::<u32>::into(CustomActionResult::Cancel));
-        assert_eq!(1603u32, Into::<u32>::into(CustomActionResult::Fail));
+        assert_eq!(1603u32, Into::<u32>::into(CustomActionResult::Failure));
         assert_eq!(1626u32, Into::<u32>::into(CustomActionResult::NotExecuted));
     }
 

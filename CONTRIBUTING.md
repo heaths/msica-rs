@@ -39,7 +39,7 @@ The following software is recommended:
 To build and test, simply run:
 
 ```powershell
-cargo test --features nightly
+cargo test --all-features
 ```
 
 By default, this will build x64 custom action DLLs from under _examples_.
