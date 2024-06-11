@@ -34,11 +34,15 @@ extern "C" {
     pub fn MsiDatabaseGetPrimaryKeys(
         hDatabase: MSIHANDLE,
         szTableName: LPCSTR,
-        hRecord: &MSIHANDLE,
+        hRecord: &mut MSIHANDLE,
     ) -> u32;
 
     #[link_name = "MsiDatabaseOpenViewA"]
-    pub fn MsiDatabaseOpenView(hDatabase: MSIHANDLE, szQuery: LPCSTR, phView: &MSIHANDLE) -> u32;
+    pub fn MsiDatabaseOpenView(
+        hDatabase: MSIHANDLE,
+        szQuery: LPCSTR,
+        phView: &mut MSIHANDLE,
+    ) -> u32;
 
     #[link_name = "MsiDoActionA"]
     pub fn MsiDoAction(hInstall: MSIHANDLE, szAction: LPCSTR) -> u32;
@@ -99,7 +103,7 @@ extern "C" {
 
     pub fn MsiViewExecute(hView: MSIHANDLE, hRecord: MSIHANDLE) -> u32;
 
-    pub fn MsiViewFetch(hView: MSIHANDLE, phRecord: &MSIHANDLE) -> u32;
+    pub fn MsiViewFetch(hView: MSIHANDLE, phRecord: &mut MSIHANDLE) -> u32;
 
     pub fn MsiViewModify(hView: MSIHANDLE, eModifyMode: ModifyMode, hRecord: MSIHANDLE) -> u32;
 }
