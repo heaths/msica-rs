@@ -15,9 +15,9 @@ impl Database {
     /// [SQL string](https://docs.microsoft.com/windows/win32/msi/sql-syntax).
     pub fn open_view(&self, sql: &str) -> Result<View> {
         unsafe {
-            let h = ffi::MSIHANDLE::null();
+            let mut h = ffi::MSIHANDLE::null();
             let sql = CString::new(sql)?;
-            let ret = ffi::MsiDatabaseOpenView(*self.h, sql.as_ptr(), &h);
+            let ret = ffi::MsiDatabaseOpenView(*self.h, sql.as_ptr(), &mut h);
             if ret != ffi::ERROR_SUCCESS {
                 return Err(
                     Error::from_last_error_record().unwrap_or_else(|| Error::from_error_code(ret))
@@ -34,9 +34,9 @@ impl Database {
     /// The field count of the record is the count of primary key columns.
     pub fn primary_keys(&self, table: &str) -> Result<Record> {
         unsafe {
-            let h = ffi::MSIHANDLE::null();
+            let mut h = ffi::MSIHANDLE::null();
             let table = CString::new(table)?;
-            let ret = ffi::MsiDatabaseGetPrimaryKeys(*self.h, table.as_ptr(), &h);
+            let ret = ffi::MsiDatabaseGetPrimaryKeys(*self.h, table.as_ptr(), &mut h);
             if ret != ffi::ERROR_SUCCESS {
                 return Err(Error::from_error_code(ret));
             }
